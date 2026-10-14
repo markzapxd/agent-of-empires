@@ -280,13 +280,7 @@ export function LiveTerminalView({ session, active = true, surface = "agent", te
       data-term={dataTerm}
       data-pane-focused={inputFocused || undefined}
     >
-      {/* Focused terminal panes use the Arise purple accent, never a legacy blue status color. */}
-      <div
-        aria-hidden="true"
-        className={`pointer-events-none absolute inset-0 z-10 ring-inset transition-shadow ${
-          coarse ? "" : inputFocused ? "ring-2 ring-brand-500" : "ring-1 ring-surface-700/40"
-        }`}
-      />
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-10" />
 
       <TerminalConnectionBanners
         connected={live.state.connected}
