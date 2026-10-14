@@ -4,7 +4,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 /// Title restored when the TUI exits, and used when nothing is selected
 /// or the user has opted out.
-pub const FALLBACK_TITLE: &str = "aoe";
+pub const FALLBACK_TITLE: &str = "arise";
 
 /// Set when this process has written OSC 0, so TerminalGuard can restore
 /// [`FALLBACK_TITLE`] on exit without touching tabs we never named.
@@ -28,7 +28,7 @@ pub fn sanitize_title(raw: &str) -> String {
         .to_string()
 }
 
-/// Tab string for a selected session: `aoe: {title}`. Empty or missing
+/// Tab string for a selected session: `arise: {title}`. Empty or missing
 /// titles fall back to [`FALLBACK_TITLE`].
 pub fn format_tab_title(session_title: Option<&str>) -> String {
     match session_title.map(sanitize_title) {

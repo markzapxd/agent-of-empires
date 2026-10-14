@@ -311,7 +311,7 @@ impl HelpOverlay {
 
         let sections = build_sections(strict_hotkeys, sort_order, live_on_enter);
 
-        let version = format!(" Agent of Empires v{} ", env!("CARGO_PKG_VERSION"));
+        let version = format!(" Arise v{} ", env!("CARGO_PKG_VERSION"));
         let block = Block::default()
             .style(Style::default().bg(theme.background))
             .borders(Borders::ALL)

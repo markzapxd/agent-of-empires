@@ -65,7 +65,7 @@ pub(super) const FIELD_HELP: &[FieldHelp] = &[
     },
     FieldHelp {
         name: "Structured",
-        description: "Render as a structured (ACP) transcript; runs under aoe serve",
+        description: "Render as a structured (ACP) transcript; runs under arise serve",
     },
     FieldHelp {
         name: "YOLO Mode",

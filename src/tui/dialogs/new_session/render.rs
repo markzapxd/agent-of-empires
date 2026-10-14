@@ -255,7 +255,7 @@ impl NewSessionDialog {
             ];
             if self.structured_enabled {
                 spans.push(Span::styled(
-                    "  (runs under aoe serve)",
+                    "  (runs under arise serve)",
                     Style::default().fg(theme.dimmed),
                 ));
             }

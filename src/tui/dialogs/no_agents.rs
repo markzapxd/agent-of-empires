@@ -97,7 +97,7 @@ impl NoAgentsDialog {
                 Style::default().fg(theme.text),
             )),
             Line::from(Span::styled(
-                "AI coding agent. AoE manages and orchestrates them.",
+                "Arise manages and orchestrates them.",
                 Style::default().fg(theme.text),
             )),
             Line::from(""),
@@ -129,7 +129,7 @@ impl NoAgentsDialog {
             ]),
             Line::from(""),
             Line::from(Span::styled(
-                "Run `aoe agents` for a full list with install commands.",
+                "Run `arise agents` for a full list with install commands.",
                 Style::default().fg(theme.dimmed),
             )),
         ];

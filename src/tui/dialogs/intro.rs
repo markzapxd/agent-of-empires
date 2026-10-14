@@ -423,7 +423,7 @@ impl IntroDialog {
 
         let total = Page::all().len();
         let title = format!(
-            " Welcome to Agent of Empires  ({}/{}) ",
+            " Welcome to Arise  ({}/{}) ",
             self.page_idx + 1,
             total
         );
@@ -453,7 +453,7 @@ impl IntroDialog {
     fn render_welcome(&mut self, frame: &mut Frame, area: Rect, theme: &Theme) {
         let mut lines = vec![
             Line::from(Span::styled(
-                "Agent of Empires (aoe) runs many AI coding agents side by side.",
+                "Arise runs many AI coding agents side by side.",
                 Style::default().fg(theme.text),
             )),
             Line::from(""),
@@ -533,16 +533,16 @@ impl IntroDialog {
 
         let intro = Paragraph::new(vec![
             Line::from(Span::styled(
-                "Help improve aoe with anonymous usage telemetry?",
+                "Help improve Arise with anonymous usage telemetry?",
                 Style::default().fg(theme.title).bold(),
             )),
             Line::from(""),
             Line::from(Span::styled(
-                "It shows us how aoe is actually used, so we can prioritize the",
+                "It shows us how Arise is actually used, so we can prioritize the",
                 Style::default().fg(theme.text),
             )),
             Line::from(Span::styled(
-                "features that matter most. Off by default; when on, aoe sends",
+                "features that matter most. Off by default; when on, Arise sends",
                 Style::default().fg(theme.text),
             )),
             Line::from(Span::styled(
@@ -554,7 +554,7 @@ impl IntroDialog {
                 Style::default().fg(theme.text),
             )),
             Line::from(Span::styled(
-                "Change it any time under Settings, or with `aoe telemetry`.",
+                "Change it any time under Settings, or with `arise telemetry`.",
                 Style::default().fg(theme.dimmed),
             )),
         ])
@@ -676,7 +676,7 @@ impl IntroDialog {
             )),
             Line::from(""),
             Line::from(Span::styled(
-                "Sessions keep running when you detach or quit aoe.",
+                "Sessions keep running when you detach or quit Arise.",
                 Style::default().fg(theme.text),
             )),
             Line::from(Span::styled(
@@ -725,13 +725,13 @@ impl IntroDialog {
         // switch can fall back to a fresh attach, so both keys are shown.
         let prefix = crate::tmux::tmux_prefix_display();
         let key = crate::tmux::attach_return_hint();
-        let tmux_back = format!("      tmux pane. {prefix} then {key} comes back to aoe.");
+        let tmux_back = format!("      tmux pane. {prefix} then {key} comes back to Arise.");
         let options = [
             (
                 AttachMode::LiveSend,
                 "Live mode  (recommended; works for most workflows)",
                 vec![
-                    "      aoe stays open with the agent's terminal shown next to".to_string(),
+                    "      Arise stays open with the agent's terminal shown next to".to_string(),
                     "      the session list. Type to send keys to the highlighted".to_string(),
                     "      agent. Ctrl+Q stops typing. Tab attaches into tmux.".to_string(),
                 ],
