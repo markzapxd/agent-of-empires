@@ -97,12 +97,12 @@ export function TopBar({
   const hideWordmark = sidebarColumnVisible && webSettings.sidebarCompact;
 
   return (
-    <header {...tourAnchor(TOUR_ANCHORS.topbar)} className="h-12 bg-surface-900 flex items-stretch shrink-0 border-b border-brand-500/20 shadow-[0_1px_0_rgba(124,58,237,0.18),0_6px_18px_rgba(0,0,0,0.18)]">
+    <header {...tourAnchor(TOUR_ANCHORS.topbar)} className="h-12 bg-surface-900 flex items-stretch shrink-0 shadow-[0_6px_18px_rgba(0,0,0,0.18)]">
       {/* Left zone: widens to the sidebar column when it's visible so the divider runs vertically through the
          header instead of cutting across it; otherwise it keeps the shared bottom border like the rest. */}
       <div
-        className={`flex items-center gap-2 px-3 min-w-0 shrink-0 border-b border-brand-500/20 md:border-brand-500/10 ${
-          sidebarColumnVisible ? "md:w-[var(--aoe-sidebar-width)] md:bg-surface-800/90 md:border-b-0 md:border-r md:border-brand-500/25" : ""
+        className={`flex items-center gap-2 px-3 min-w-0 shrink-0 ${
+          sidebarColumnVisible ? "md:w-[var(--aoe-sidebar-width)] md:bg-surface-800/90" : ""
         }`}
       >
         <button
@@ -174,7 +174,7 @@ export function TopBar({
 
       {/* Center zone: palette trigger; carries the bottom border across the
           middle, between the two column-aligned zones. */}
-      <div className="flex-1 flex items-center px-3 min-w-0 border-b border-brand-500/20">
+      <div className="flex-1 flex items-center px-3 min-w-0">
         <div className="flex-1 flex justify-center px-2">
           <PaletteTriggerPill onClick={onOpenPalette} />
         </div>
@@ -183,8 +183,8 @@ export function TopBar({
       {/* Right zone: widens to the right-panel column when it's visible so the divider runs vertically through
          the header instead of cutting across it; otherwise it keeps the shared bottom border like the rest. */}
       <div
-        className={`flex items-center justify-end gap-1.5 px-3 shrink-0 border-b border-brand-500/20 md:border-brand-500/10 ${
-          rightColumnVisible ? "md:w-[var(--aoe-right-panel-width)] md:border-b-0 md:border-l md:border-brand-500/25" : ""
+        className={`flex items-center justify-end gap-1.5 px-3 shrink-0 ${
+          rightColumnVisible ? "md:w-[var(--aoe-right-panel-width)]" : ""
         }`}
       >
         <PluginStatusBarSegments />
