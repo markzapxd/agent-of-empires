@@ -46,37 +46,34 @@
 
 @import "tailwindcss";
 
-/* Build-time fallback palette. Mirrors the `zinc` builtin theme
-   (themes/builtin/zinc.toml) so the cold-load paint, before
-   useResolvedTheme has fetched and applied the user's selection,
-   matches the resolved palette for zinc. Keep these values in
-   sync with that TOML file. */
+/* Build-time fallback palette. Mirrors the `shadow-monarch` builtin theme
+   so the cold-load paint matches the purple product theme before the
+   resolved theme has loaded. */
 @theme {
-  /* Brand, derived from zinc.accent */
-  --color-brand-100: #fdecce;
-  --color-brand-200: #fcddaa;
-  --color-brand-300: #faca79;
-  --color-brand-400: #f7b13c;
-  --color-brand-500: #f59e0b;
-  --color-brand-600: #d08609;
-  --color-brand-700: #ac6f08;
-  --color-brand-800: #865606;
-  --color-brand-900: #6e4705;
-  --color-text-on-brand: #000000;
+  --color-brand-100: #ede9fe;
+  --color-brand-200: #ddd6fe;
+  --color-brand-300: #c4b5fd;
+  --color-brand-400: #a78bfa;
+  --color-brand-500: #7c3aed;
+  --color-brand-600: #6d28d9;
+  --color-brand-700: #5b21b6;
+  --color-brand-800: #4c1d95;
+  --color-brand-900: #3b0764;
+  --color-text-on-brand: #ffffff;
 
-  /* Accent -- Muted Teal (used sparingly) */
-  --color-accent-500: #14b8a6;
-  --color-accent-600: #0d9488;
-  --color-accent-700: #0f766e;
+  /* Accent -- Purple */
+  --color-accent-500: #c084fc;
+  --color-accent-600: #a78bfa;
+  --color-accent-700: #7c3aed;
 
-  /* Surfaces, derived from zinc.background and border */
-  --color-surface-500: #65656b;
-  --color-surface-600: #525258;
-  --color-surface-700: #3f3f46;
-  --color-surface-800: #2e2e31;
-  --color-surface-850: #27272a;
-  --color-surface-900: #1c1c1f;
-  --color-surface-950: #0f0f11;
+  /* Surfaces, derived from shadow-monarch.background and border */
+  --color-surface-500: #3a3a46;
+  --color-surface-600: #2f2f39;
+  --color-surface-700: #26262e;
+  --color-surface-800: #111115;
+  --color-surface-850: #0d0d10;
+  --color-surface-900: #0a0a0c;
+  --color-surface-950: #050507;
 
   /* Semantic Text */
   --color-text-primary: #e4e4e7;
@@ -93,82 +90,52 @@
   --color-text-bright: #fafafa;
 
   /* Semantic Status */
-  --color-status-running: #22c55e;
-  /* Waiting (blocked on user input) is the brightest amber in the brand
-     ramp so it wins on luminance against fresh-idle. Saturation alone
-     reads as DIMMER on dark backgrounds, so we lean on luminance. */
-  --color-status-waiting: #fbbf24;
-  --color-status-warning: #fbbf24;
-  /* Color of an Idle session whose Stop fired within the decay window.
-     Held constant for the full window (then snaps to `--color-status-idle`)
-     so the breathe rattle's pulse stays visually consistent. One rung
-     dimmer than waiting so the hierarchy reads bright > amber > slate. */
-  --color-status-fresh-idle: #f59e0b;
-  --color-status-idle: #71717a;
-  /* Unread accent: a finished turn the user hasn't viewed, or a manual flag.
-     Sits between waiting and idle on the attention scale. Theme-projected
-     from `theme.unread` (see resolved.rs); this default matches `zinc`. */
-  --color-status-unread: #38bdf8;
-  --color-status-error: #ef4444;
-  /* Error as body text: projected as the theme error lifted until it clears
-     4.5:1 on surface-900 and -850 (see resolved.rs). This default is zinc's. */
-  --color-status-error-text: #f26969;
-  --color-status-starting: #f59e0b;
-  --color-status-stopped: #52525b;
-  /* Dormant: a structured-view worker auto-stopped for inactivity
-     (resumable), distinct from a deliberate Stop. A dim amber, brighter
-     than the slate Stopped grey but muted well below the fresh-idle
-     attention amber so it reads as "parked, not urgent". Build-time
-     cold-load default; the resolved theme projection (resolved.rs)
-     overrides it at runtime from `fresh_idle` + `dimmed`. See #2250. */
-  --color-status-dormant: #b38742;
+  --color-status-running: #3b82f6;
+  --color-status-waiting: #f59e0b;
+  --color-status-warning: #f59e0b;
+  --color-status-fresh-idle: #a78bfa;
+  --color-status-idle: #8e8ea0;
+  --color-status-unread: #a78bfa;
+  --color-status-error: #e5384f;
+  --color-status-error-text: #ff8a9b;
+  --color-status-starting: #a78bfa;
+  --color-status-stopped: #3a3a46;
+  --color-status-dormant: #8e8ea0;
 
-  /* Extended semantic tokens populated by the resolved theme
-     projection (see src/tui/styles/resolved.rs). These build-time
-     defaults match the `zinc` builtin theme so cold-load paint
-     matches the post-fetch paint when no localStorage cache exists. */
-  --color-selection: #3f3f46;
-  --color-session-selection: #52525b;
-  /* Frame around the open session's sidebar row. Projected as the theme
-     accent lifted until it clears 3:1 against every surface it can sit on
-     (see resolved.rs); zinc's accent already does, so this matches
-     --color-brand-500. */
-  --color-session-active: #f59e0b;
-  --color-terminal-active: #0d9488;
-  --color-branch: #0d9488;
-  --color-sandbox: #94a3b8;
-  --color-favorite: #a78bfa;
-  --color-diff-add: #22c55e;
-  --color-diff-delete: #ef4444;
+  /* Extended semantic tokens populated by the resolved theme projection. */
+  --color-selection: #26262e;
+  --color-session-selection: #3a3a46;
+  --color-session-active: #7c3aed;
+  --color-terminal-active: #3b82f6;
+  --color-branch: #3b82f6;
+  --color-sandbox: #a78bfa;
+  --color-favorite: #c084fc;
+  --color-diff-add: #4ade80;
+  --color-diff-delete: #fb7185;
   --color-diff-modified: #fbbf24;
-  --color-diff-header: #0d9488;
+  --color-diff-header: #a78bfa;
 
-  /* Embedded terminal cold-load defaults. useResolvedTheme refetches
-     and overrides these once the resolved palette lands; the terminal
-     hook reads them on construction and on `aoe:theme-changed` to
-     build xterm.js's ITheme. These match the `zinc` builtin
-     projected by src/tui/styles/resolved.rs::terminal_projection so
-     the pre-fetch paint matches the post-fetch paint for the zinc theme. */
-  --term-bg: #1c1c1f;
-  --term-fg: #e4e4e7;
-  --term-cursor: #f59e0b;
-  --term-selection-bg: rgba(161, 161, 170, 0.35);
-  --term-color-0: #1c1c1f;
-  --term-color-1: #ef4444;
-  --term-color-2: #22c55e;
-  --term-color-3: #fbbf24;
-  --term-color-4: #0d9488;
-  --term-color-5: #f59e0b;
-  --term-color-6: #0d9488;
-  --term-color-7: #e4e4e7;
-  --term-color-8: #8b8b94;
-  --term-color-9: #f26969;
-  --term-color-10: #4ed17e;
-  --term-color-11: #fccc50;
-  --term-color-12: #3da9a0;
-  --term-color-13: #f7b13c;
-  --term-color-14: #3da9a0;
-  --term-color-15: #fbbf24;
+  /* Embedded terminal cold-load defaults for shadow-monarch. */
+  --term-bg: #0a0a0c;
+  --term-fg: #ececf1;
+  --term-cursor: #7c3aed;
+  --term-selection-bg: rgba(167, 139, 250, 0.35);
+  --term-color-0: #0a0a0c;
+  --term-color-1: #e5384f;
+  --term-color-2: #4ade80;
+  --term-color-3: #f59e0b;
+  --term-color-4: #3b82f6;
+  --term-color-5: #7c3aed;
+  --term-color-6: #a78bfa;
+  --term-color-7: #ececf1;
+  --term-color-8: #3a3a46;
+  --term-color-9: #fb7185;
+  --term-color-10: #86efac;
+  --term-color-11: #fbbf24;
+  --term-color-12: #60a5fa;
+  --term-color-13: #c084fc;
+  --term-color-14: #c4b5fd;
+  --term-color-15: #fef3c7;
 
   /* Typography */
   --font-sans: "Geist Sans", system-ui, -apple-system, sans-serif;
