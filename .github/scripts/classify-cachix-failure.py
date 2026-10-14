@@ -14,7 +14,7 @@ stdin and prints `kind=` and `alert=` lines for `$GITHUB_OUTPUT`.
 Usage:
     gh api "repos/$REPO/actions/runs/$RUN_ID/jobs" \\
       | python3 .github/scripts/classify-cachix-failure.py \\
-          --build-step "Build aoe-with-web" --previous-conclusion "$PREVIOUS"
+          --build-step "Build arise-with-web" --previous-conclusion "$PREVIOUS"
 
     python3 .github/scripts/classify-cachix-failure.py --self-test
 """
@@ -64,7 +64,7 @@ def should_alert(kind, previous_conclusion):
 
 
 def self_test():
-    step = "Build aoe-with-web"
+    step = "Build arise-with-web"
 
     def job(conclusion, *steps):
         return {"conclusion": conclusion, "steps": [{"name": n, "conclusion": c} for n, c in steps]}
@@ -75,7 +75,7 @@ def self_test():
     install_failed = job("failure", ("Run ./.github/actions/install-nix", "failure"), (step, "skipped"))
     push_failed = job("failure", (step, "success"), ("Push to Cachix", "failure"))
     timed_out = job("failure", (step, "cancelled"))
-    renamed = job("failure", ("Build aoe", "failure"))
+    renamed = job("failure", ("Build arise", "failure"))
     # The notify job itself is still running when it lists the run's jobs.
     running = {"conclusion": None, "steps": []}
 

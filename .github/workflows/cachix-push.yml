@@ -1,6 +1,6 @@
 name: Push to Cachix
 
-# Builds aoe-with-web (default features, web UI embedded) for Linux and macOS
+# Builds arise-with-web (default features, web UI embedded) for Linux and macOS
 # and pushes the results to the Cachix binary cache so users can install
 # without compiling. Runs a matrix so both systems build in parallel.
 #
@@ -50,8 +50,8 @@ jobs:
           name: ${{ secrets.CACHIX_CACHE_NAME }}
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
 
-      - name: Build aoe-with-web
-        run: nix build .#aoe-with-web
+      - name: Build arise-with-web
+        run: nix build .#arise-with-web
 
       - name: Push to Cachix
         run: cachix push ${{ secrets.CACHIX_CACHE_NAME }} ./result
@@ -88,7 +88,7 @@ jobs:
           # --build-step must match the build step's `name:` above.
           gh api "repos/$REPO/actions/runs/$RUN_ID/jobs" \
             | python3 .github/scripts/classify-cachix-failure.py \
-                --build-step "Build aoe-with-web" --previous-conclusion "$PREVIOUS" \
+                --build-step "Build arise-with-web" --previous-conclusion "$PREVIOUS" \
             | tee -a "$GITHUB_OUTPUT"
 
       - name: Warn on a one-off infrastructure failure
@@ -107,7 +107,7 @@ jobs:
             const { owner, repo } = context.repo;
             const runUrl = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
             const cause = {
-              build: '`nix build .#aoe-with-web` failed, so main does not build under Nix.',
+              build: '`nix build .#arise-with-web` failed, so main does not build under Nix.',
               infra: 'A setup or Cachix step failed, and the previous run on main also failed; check that run, the `CACHIX_*` secrets and Cachix status.',
               unknown: 'The failing step could not be identified; read the run log.',
             }[process.env.KIND];

@@ -14,7 +14,7 @@ BASE_URL="https://github.com/${REPO}/releases/download/v${VERSION}"
 echo "Fetching sha256 hashes for v${VERSION}..."
 echo ""
 
-for ARTIFACT in aoe-darwin-arm64 aoe-darwin-amd64 aoe-linux-arm64 aoe-linux-amd64; do
+for ARTIFACT in arise-darwin-arm64 arise-darwin-amd64 arise-linux-arm64 arise-linux-amd64; do
     URL="${BASE_URL}/${ARTIFACT}.tar.gz"
     echo "Downloading ${ARTIFACT}..."
     SHA=$(curl -sL "${URL}" | shasum -a 256 | cut -d' ' -f1)
@@ -29,22 +29,22 @@ echo ""
 cat << EOF
   on_macos do
     on_arm do
-      url "https://github.com/${REPO}/releases/download/v${VERSION}/aoe-darwin-arm64.tar.gz"
+      url "https://github.com/${REPO}/releases/download/v${VERSION}/arise-darwin-arm64.tar.gz"
       sha256 "${SHA_aoe_darwin_arm64}"
     end
     on_intel do
-      url "https://github.com/${REPO}/releases/download/v${VERSION}/aoe-darwin-amd64.tar.gz"
+      url "https://github.com/${REPO}/releases/download/v${VERSION}/arise-darwin-amd64.tar.gz"
       sha256 "${SHA_aoe_darwin_amd64}"
     end
   end
 
   on_linux do
     on_arm do
-      url "https://github.com/${REPO}/releases/download/v${VERSION}/aoe-linux-arm64.tar.gz"
+      url "https://github.com/${REPO}/releases/download/v${VERSION}/arise-linux-arm64.tar.gz"
       sha256 "${SHA_aoe_linux_arm64}"
     end
     on_intel do
-      url "https://github.com/${REPO}/releases/download/v${VERSION}/aoe-linux-amd64.tar.gz"
+      url "https://github.com/${REPO}/releases/download/v${VERSION}/arise-linux-amd64.tar.gz"
       sha256 "${SHA_aoe_linux_amd64}"
     end
   end

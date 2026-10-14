@@ -64,15 +64,15 @@
           # Build only workspace dependencies first (for caching)
           cargoArtifacts = craneLib.buildDepsOnly commonArgs;
 
-          aoe = craneLib.buildPackage (commonArgs // {
+          arise = craneLib.buildPackage (commonArgs // {
             inherit cargoArtifacts;
             cargoExtraArgs = "--package agent-of-empires";
             doCheck = false;
             postInstall = ''
-              installShellCompletion --cmd aoe \
-                --bash <($out/bin/aoe completion bash) \
-                --fish <($out/bin/aoe completion fish) \
-                --zsh <($out/bin/aoe completion zsh)
+              installShellCompletion --cmd arise \
+                --bash <($out/bin/arise completion bash) \
+                --fish <($out/bin/arise completion fish) \
+                --zsh <($out/bin/arise completion zsh)
             '';
 
             meta = with pkgs.lib; {
@@ -90,7 +90,7 @@
               # machine in src/tui/hyperlink.rs (see THIRD_PARTY_NOTICES.md).
               license = with licenses; [ mit asl20 ];
               platforms = platforms.unix;
-              mainProgram = "aoe";
+              mainProgram = "arise";
             };
           });
 
@@ -98,7 +98,7 @@
           # This separates the npm build from the Rust build cleanly.
           #
           # Update npmDepsHash whenever web/package-lock.json changes:
-          #   nix-update aoe-with-web
+          #   nix-update arise-with-web
           # or manually: set npmDepsHash to lib.fakeHash, build, copy the got: hash.
           webFrontend = pkgs.buildNpmPackage {
             pname = "agent-of-empires-web";
@@ -122,31 +122,31 @@
           # Rust dep cache compiled with --features web (no npm involved).
           cargoArtifactsWithWeb = craneLib.buildDepsOnly commonArgsWithWeb;
 
-          aoeWithWeb = craneLib.buildPackage (commonArgsWithWeb // {
+          ariseWithWeb = craneLib.buildPackage (commonArgsWithWeb // {
             cargoArtifacts = cargoArtifactsWithWeb;
             doCheck = false;
             # Point build.rs at the pre-built frontend; it will copy dist/ into
             # place and skip running npm entirely (see build.rs AOE_WEB_DIST handling).
             AOE_WEB_DIST = "${webFrontend}/dist";
             postInstall = ''
-              installShellCompletion --cmd aoe \
-                --bash <($out/bin/aoe completion bash) \
-                --fish <($out/bin/aoe completion fish) \
-                --zsh <($out/bin/aoe completion zsh)
+              installShellCompletion --cmd arise \
+                --bash <($out/bin/arise completion bash) \
+                --fish <($out/bin/arise completion fish) \
+                --zsh <($out/bin/arise completion zsh)
             '';
-            meta = aoe.meta;
+            meta = arise.meta;
             # Expose npmDeps so `nix-update` can automatically recompute the
             # npmDepsHash in webFrontend when web/package-lock.json changes.
             passthru.npmDeps = webFrontend.npmDeps;
           });
         in
         {
-          packages.default = aoe;
-          packages.aoe-with-web = aoeWithWeb;
+          packages.default = arise;
+          packages.arise-with-web = ariseWithWeb;
           # Just the npm + vite build. Exposed so the PR-CI Nix Build
           # Web job can validate npmDepsHash + frontend build in ~1-2
           # min instead of rebuilding the full Rust workspace.
-          packages.aoe-web-frontend = webFrontend;
+          packages.arise-web-frontend = webFrontend;
           # Exposed so the nix-npm-hash bots and the local manual
           # update procedure use the same nixpkgs revision as
           # `buildNpmPackage` above.

@@ -520,7 +520,7 @@ jobs:
       # for e2e tests. The harness derives the tmux prefix from the
       # binary path (aoe_dev_ for debug, aoe_ for release) so specs
       # don't hard-code either.
-      - name: Build aoe with instrumented web bundle
+      - name: Build arise with instrumented web bundle
         env:
           AOE_COVERAGE: '1'
           # build.rs embeds `dist/` into the binary with rust-embed, and a

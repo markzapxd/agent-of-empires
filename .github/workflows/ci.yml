@@ -256,7 +256,7 @@ jobs:
           for system in $SYSTEMS; do
             echo ""
             echo "--- $system ---"
-            for pkg in default aoe-with-web; do
+            for pkg in default arise-with-web; do
               printf "  %s: " "$pkg"
               if output=$(nix eval ".#packages.$system.$pkg.drvPath" --raw 2>&1); then
                 echo "✓"
@@ -393,7 +393,7 @@ jobs:
       - uses: ./.github/actions/install-nix
         if: steps.changes.outputs.relevant == 'true'
 
-      - name: Build aoe-web-frontend
+      - name: Build arise-web-frontend
         if: steps.changes.outputs.relevant == 'true'
         # Builds only the npm + vite frontend (validates npmDepsHash
         # as a side effect). Skips the full Rust crate so this job
