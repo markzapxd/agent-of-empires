@@ -64,11 +64,12 @@ export function Dashboard({
 
   return (
     <div
-      className="flex-1 flex flex-col items-center justify-start overflow-y-auto bg-surface-950 px-4 py-6 md:justify-center md:py-0"
-      // Bottom home-indicator clearance: the App root no longer reserves it
-      // (see index.css .safe-area-inset). Collapses to the base gap off-device.
+      className="relative flex-1 flex flex-col items-center justify-start overflow-y-auto bg-surface-950 px-4 py-6 md:justify-center md:py-0"
       style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}
     >
+      <div className="pointer-events-none absolute inset-0 bg-[url('/arise-home-bg.gif')] bg-cover bg-center opacity-45" />
+      <div className="pointer-events-none absolute inset-0 bg-black/70" />
+      <div className="relative z-10 flex flex-col items-center">
       <img src="/arise-icon.png" alt="Arise" className="w-12 h-12 md:w-16 md:h-16 mb-3 object-contain" />
       <div className="mb-1 text-center">
         <p className="text-[11px] md:text-xs font-mono text-text-muted uppercase tracking-[0.2em]">agent of</p>
@@ -214,6 +215,7 @@ export function Dashboard({
           session
         </p>
       )}
+      </div>
     </div>
   );
 }
