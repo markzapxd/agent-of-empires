@@ -2024,7 +2024,7 @@ function AppContent({
             collapsed={rightDockCollapsed}
             onToggleCollapse={toggleRightDock}
             left={
-              <div className="flex-1 flex flex-col min-h-0 overflow-hidden relative">
+              <div className="flex-1 flex flex-col min-h-0 overflow-hidden relative bg-surface-850">
                 <div className={selectedFilePath ? "hidden" : "flex-1 flex flex-col min-h-0 overflow-hidden"}>
                   {activeSession?.view === "structured" ? (
                     <Suspense fallback={<AcpLoadingFallback />}>
