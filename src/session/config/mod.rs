@@ -3569,12 +3569,12 @@ impl Config {
     }
 
     /// Effective theme name to paint, mapping the empty default to the
-    /// `zinc` builtin (the default theme). Theme is a global preference (see
-    /// [`resolve_theme_name`]); callers read it from the global config, never
-    /// the profile-merged config.
+    /// `shadow-monarch` builtin. Theme is a global preference (see
+    /// [`resolve_theme_name`]); callers read the global config, never the
+    /// profile-merged config.
     pub fn effective_theme_name(&self) -> String {
         if self.theme.name.is_empty() {
-            "zinc".to_string()
+            "shadow-monarch".to_string()
         } else {
             self.theme.name.clone()
         }
@@ -3684,7 +3684,7 @@ pub fn update_app_state<R>(f: impl FnOnce(&mut AppStateConfig) -> R) -> Result<R
 /// the global theme on others let a per-profile override (which the web theme
 /// picker used to write) shadow the global pick on every Settings open/close,
 /// flipping the theme until the next restart. An empty name maps to the
-/// `zinc` builtin, matching the web dashboard's empty-name fallback.
+/// `shadow-monarch` builtin, matching the web dashboard's empty-name fallback.
 pub fn resolve_theme_name() -> String {
     Config::load_or_warn().effective_theme_name()
 }

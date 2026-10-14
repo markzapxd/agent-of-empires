@@ -25,6 +25,10 @@ pub struct BuiltinTheme {
 
 pub const BUILTIN_THEMES: &[BuiltinTheme] = &[
     BuiltinTheme {
+        name: "shadow-monarch",
+        source: include_str!("../../../themes/builtin/shadow-monarch.toml"),
+    },
+    BuiltinTheme {
         name: "zinc",
         source: include_str!("../../../themes/builtin/zinc.toml"),
     },
@@ -212,13 +216,13 @@ pub fn load_theme(name: &str) -> Theme {
             }
         }
     }
-    warn!("Unknown theme '{}', falling back to zinc", name);
+    warn!("Unknown theme '{}', falling back to shadow-monarch", name);
     // Inline the default fallback rather than recursing through `load_theme`, so
     // a rename or removal of the `zinc` default panics clearly instead of looping.
     let default = BUILTIN_THEMES
         .iter()
-        .find(|b| b.name == "zinc")
-        .expect("'zinc' builtin missing from BUILTIN_THEMES");
+        .find(|b| b.name == "shadow-monarch")
+        .expect("'shadow-monarch' builtin missing from BUILTIN_THEMES");
     parse_builtin(default)
 }
 
