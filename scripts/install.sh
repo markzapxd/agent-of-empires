@@ -4,7 +4,7 @@ set -e
 REPO="agent-of-empires/agent-of-empires"
 DEFAULT_INSTALL_DIR="$HOME/.local/bin"
 INSTALL_DIR="${INSTALL_DIR:-$DEFAULT_INSTALL_DIR}"
-BINARY_NAME="aoe"
+BINARY_NAME="arise"
 
 # Matches the manylinux_2_28 container the release workflow builds in
 # (.github/workflows/release.yml, env.LINUX_GLIBC_FLOOR). Bump together.

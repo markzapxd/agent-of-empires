@@ -284,5 +284,5 @@ path = "tests/e2e/main.rs"
 required-features = ["e2e-tests"]
 
 [[bin]]
-name = "aoe"
+name = "arise"
 path = "src/main.rs"
