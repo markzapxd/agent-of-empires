@@ -165,10 +165,10 @@ export function TopBar({
           className="flex items-center gap-1.5 min-w-0 text-text-muted hover:text-text-secondary transition-colors cursor-pointer"
           aria-label="Go to dashboard"
         >
-          <img src="/icon-192.png" alt="" width="18" height="18" className="rounded-sm shrink-0" />
+          <img src="/arise-icon.png" alt="Arise" width="18" height="18" className="rounded-sm shrink-0" />
           {/* This zone matches the sidebar column, so a compact rail leaves no room for the wordmark next to the
              toggle and the logo: it would sit flush against the divider and read as clipped. */}
-          <span className={`font-mono text-xs leading-none truncate ${hideWordmark ? "md:hidden" : ""}`}>aoe</span>
+          <span className={`font-mono text-xs leading-none truncate ${hideWordmark ? "md:hidden" : ""}`}>Arise</span>
         </button>
       </div>
 

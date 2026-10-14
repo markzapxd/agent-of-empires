@@ -1096,7 +1096,7 @@ mod tests {
             "/assets/index-abc123.js",
             "/manifest.json",
             "/sw.js",
-            "/icon-192.png",
+            "/arise-icon.png",
             "/fonts/inter.woff2",
         ];
         for path in exempt {

@@ -381,7 +381,7 @@ pub(super) fn build_router(state: Arc<AppState>) -> Router {
         .route("/manifest.json", get(serve_public_file))
         .route("/sw.js", get(serve_public_file))
         .route("/icon-192.png", get(serve_public_file))
-        .route("/icon-512.png", get(serve_public_file))
+        .route("/arise-icon.png", get(serve_public_file))
         .fallback(get(serve_index));
 
     app.layer(axum::middleware::from_fn_with_state(

@@ -80,7 +80,7 @@ export function AboutModal({ onClose, sessionId }: Props) {
       >
         <div className="flex items-center justify-between px-5 py-4 border-b border-surface-700">
           <div className="flex items-center gap-2 min-w-0">
-            <img src="/icon-192.png" alt="" width="24" height="24" className="rounded-sm shrink-0" />
+            <img src="/arise-icon.png" alt="Arise" width="24" height="24" className="rounded-sm shrink-0" />
             <h2 id="about-modal-title" className="text-sm font-semibold text-text-bright truncate">
               Agent of Empires
             </h2>

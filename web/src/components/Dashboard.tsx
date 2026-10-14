@@ -69,50 +69,7 @@ export function Dashboard({
       // (see index.css .safe-area-inset). Collapses to the base gap off-device.
       style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}
     >
-      {/* Logo + Title */}
-      <svg viewBox="0 0 128 128" className="w-12 h-12 md:w-16 md:h-16 mb-3" aria-hidden="true">
-        <defs>
-          <linearGradient id="home-win-back" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={AOE_BRAND_MARK_COLORS.backGradientStart} />
-            <stop offset="100%" stopColor={AOE_BRAND_MARK_COLORS.backGradientEnd} />
-          </linearGradient>
-          <linearGradient id="home-win-mid" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={AOE_BRAND_MARK_COLORS.midGradientStart} />
-            <stop offset="100%" stopColor={AOE_BRAND_MARK_COLORS.midGradientEnd} />
-          </linearGradient>
-          <linearGradient id="home-win-front" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={AOE_BRAND_MARK_COLORS.frontGradientStart} />
-            <stop offset="100%" stopColor={AOE_BRAND_MARK_COLORS.frontGradientEnd} />
-          </linearGradient>
-          <linearGradient id="home-titlebar" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={AOE_BRAND_MARK_COLORS.titlebarGradientStart} />
-            <stop offset="100%" stopColor={AOE_BRAND_MARK_COLORS.titlebarGradientEnd} />
-          </linearGradient>
-        </defs>
-        <rect x="10" y="38" width="76" height="60" rx="6" fill="url(#home-win-back)" opacity="0.6" />
-        <rect x="20" y="28" width="76" height="60" rx="6" fill="url(#home-win-mid)" opacity="0.7" />
-        <g>
-          <rect x="32" y="18" width="82" height="66" rx="6" fill="url(#home-win-front)" />
-          <rect x="32" y="18" width="82" height="18" rx="6" fill="url(#home-titlebar)" />
-          <rect x="32" y="30" width="82" height="6" fill="url(#home-titlebar)" />
-          <circle cx="46" cy="28" r="2.8" fill={AOE_BRAND_MARK_COLORS.detail} opacity="0.55" />
-          <circle cx="55" cy="28" r="2.8" fill={AOE_BRAND_MARK_COLORS.detail} opacity="0.55" />
-          <circle cx="64" cy="28" r="2.8" fill={AOE_BRAND_MARK_COLORS.detail} opacity="0.55" />
-          <rect x="36" y="39" width="74" height="41" rx="3" fill={AOE_BRAND_MARK_COLORS.detail} opacity="0.22" />
-          <text
-            x="45"
-            y="65"
-            fontFamily="'Courier New', monospace"
-            fontSize="20"
-            fontWeight="bold"
-            fill={AOE_BRAND_MARK_COLORS.prompt}
-            opacity="0.85"
-          >
-            $
-          </text>
-          <rect x="64" y="51" width="9" height="17" rx="2" fill={AOE_BRAND_MARK_COLORS.prompt} opacity="0.75" />
-        </g>
-      </svg>
+      <img src="/arise-icon.png" alt="Arise" className="w-12 h-12 md:w-16 md:h-16 mb-3 object-contain" />
       <div className="mb-1 text-center">
         <p className="text-[11px] md:text-xs font-mono text-text-muted uppercase tracking-[0.2em]">agent of</p>
         <h1

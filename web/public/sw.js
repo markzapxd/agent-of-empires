@@ -135,8 +135,8 @@ self.addEventListener("push", (event) => {
     // Store tag + seq so a later "clear" push can match this notification
     // and the seq guard can avoid closing it if a newer one supersedes it.
     data: { url: payload.url || "/", tag: payload.tag, seq: payload.seq },
-    icon: "/icon-192.png",
-    badge: "/icon-192.png",
+    icon: "/arise-icon.png",
+    badge: "/arise-icon.png",
   };
 
   event.waitUntil(

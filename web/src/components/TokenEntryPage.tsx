@@ -65,8 +65,8 @@ export function TokenEntryPage({ onSuccess }: Props) {
         <form onSubmit={handleSubmit} className="bg-surface-800 border border-surface-700/40 rounded-xl p-8">
           {/* Logo */}
           <div className="flex items-center justify-center gap-2 mb-6">
-            <img src="/icon-192.png" alt="" width="28" height="28" className="rounded-sm" />
-            <span className="font-mono text-lg text-text-primary tracking-tight">aoe</span>
+          <img src="/arise-icon.png" alt="Arise" width="28" height="28" className="rounded-sm" />
+          <span className="font-mono text-lg text-text-primary tracking-tight">Arise</span>
           </div>
 
           {/* Explanation */}
