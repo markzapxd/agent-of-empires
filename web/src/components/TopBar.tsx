@@ -102,7 +102,7 @@ export function TopBar({
          header instead of cutting across it; otherwise it keeps the shared bottom border like the rest. */}
       <div
         className={`flex items-center gap-2 px-3 min-w-0 shrink-0 ${
-          sidebarColumnVisible ? "md:w-[var(--aoe-sidebar-width)] md:bg-surface-800/90" : ""
+          sidebarColumnVisible ? "md:w-[var(--aoe-sidebar-width)]" : ""
         }`}
       >
         <button
