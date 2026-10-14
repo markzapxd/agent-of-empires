@@ -192,9 +192,9 @@ export function AgentGraph({ onOpenSession, onBack }: Props) {
               nodeTypes={nodeTypes}
               style={graphTheme}
               nodesConnectable={false}
-              nodesDraggable={false}
+              nodesDraggable={true}
               edgesReconnectable={false}
-              elementsSelectable={false}
+              elementsSelectable={true}
               fitView
               fitViewOptions={{ padding: 0.2 }}
               minZoom={0.25}

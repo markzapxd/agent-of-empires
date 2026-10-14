@@ -41,10 +41,10 @@ interface Props {
    *  (port 8081 / `aoe_dev_` tmux / `~/.agent-of-empires-dev/`) are visually distinct from release builds at a
    *  glance, including in PWA installs where the port is not visible in the window chrome. */
   isDevBuild: boolean;
-  /** Opens the tip-of-the-day modal; wired into the overflow menu so tips are
-   *  re-readable any time, like GIMP/DBeaver's Help menu entry. */
+  /** Opens the tip-of-the-day modal; wired into the overflow menu so tips are re-readable any time. */
   onOpenTips: () => void;
   onGoDashboard: () => void;
+  onGoAgentGraph?: () => void;
   /** When true (desktop, sidebar open, not in a full-width settings/projects view), the header's left zone widens
    *  to match the sidebar column and the divider runs vertically through the header instead of a bottom border, so
    *  the top-left of the header reads as part of the sidebar. */
@@ -77,6 +77,7 @@ export function TopBar({
   isDevBuild,
   onOpenTips,
   onGoDashboard,
+  onGoAgentGraph,
   sidebarColumnVisible,
   rightColumnVisible,
 }: Props) {
@@ -225,6 +226,23 @@ export function TopBar({
           </>
         )}
 
+        {onGoAgentGraph && (
+          <button
+            type="button"
+            onClick={onGoAgentGraph}
+            className="flex h-8 items-center gap-1.5 rounded-md px-2 text-xs font-mono text-text-secondary transition-colors hover:bg-surface-800 hover:text-brand-400"
+            title="Open Agent Graph"
+            aria-label="Open Agent Graph"
+          >
+            <StrokeIcon size={15} strokeWidth="1.5" hidden>
+              <circle cx="6" cy="6" r="2" />
+              <circle cx="18" cy="8" r="2" />
+              <circle cx="12" cy="18" r="2" />
+              <path d="m7.7 7 2.8 9M16.3 9l-2.7 7M8 6h8" />
+            </StrokeIcon>
+            <span className="hidden lg:inline">Graph</span>
+          </button>
+        )}
         <OverflowMenu items={overflowItems} triggerDataTour={TOUR_ANCHORS.topbarMore} />
       </div>
     </header>

@@ -186,9 +186,9 @@ function treePositions(projects: ProjectMapNode[], observations: AgentGraphNode[
       parentByChild.set(edge.target, edge.source);
     }
   }
-  const projectGap = 96;
-  const agentGap = 32;
-  const subagentGap = 24;
+  const projectGap = 180;
+  const agentGap = 72;
+  const subagentGap = 48;
   let projectX = 0;
   for (const project of projects) {
     const members = [...(byProject.get(project.projectKey) ?? [])].sort(compareNodes);
