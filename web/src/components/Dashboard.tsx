@@ -3,7 +3,7 @@ import type { SessionResponse } from "../lib/types";
 import { getStatusTextClass, isSessionActive } from "../lib/session";
 import { useIdleDecayWindowMs } from "../lib/idleDecay";
 import { useIsWideViewport } from "../hooks/useIsWideViewport";
-import { AOE_BRAND_MARK_COLORS, AOE_BRAND_MARK_TEXT_SHADOW } from "../lib/brandMark";
+import { AOE_BRAND_MARK_TEXT_SHADOW } from "../lib/brandMark";
 import { TOUR_ANCHORS, type TourAnchorId } from "../lib/tourSteps";
 import { PluginCards, PluginHomePanes } from "./plugin/PluginSlots";
 import { StatusGlyph } from "./StatusGlyph";

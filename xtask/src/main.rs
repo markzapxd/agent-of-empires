@@ -60,7 +60,7 @@ fn run_dev(_args: DevArgs) {
 #[cfg(unix)]
 fn build_web() -> bool {
     use std::process::Command;
-    eprintln!("[xtask dev] building aoe --features web...");
+    eprintln!("[xtask dev] building arise --features web...");
     Command::new("cargo")
         .args(["build", "--features", "web"])
         .status()
@@ -317,7 +317,7 @@ fn run_dev(args: DevArgs) {
             if let Some(at) = rebuild_at {
                 if Instant::now() >= at {
                     rebuild_at = None;
-                    eprintln!("[xtask dev] change detected; rebuilding aoe...");
+                    eprintln!("[xtask dev] change detected; rebuilding arise...");
                     if build_web() {
                         if let Some(mut old) = serve.take() {
                             terminate_group(&mut old, Duration::from_secs(2));
