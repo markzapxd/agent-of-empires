@@ -115,7 +115,7 @@ export function Dashboard({
                 key={session.id}
                 type="button"
                 onClick={() => onSelectSession(session.id)}
-                className="flex w-full cursor-pointer items-center gap-3 border-b border-surface-700/40 px-3 py-2.5 text-left last:border-b-0 hover:bg-surface-850 active:bg-surface-800 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand-600"
+                className="flex w-full cursor-pointer items-center gap-3 border-b border-surface-700/40 px-3 py-2.5 text-left last:border-b-0 hover:bg-surface-850 active:bg-surface-800 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand-500"
               >
                 <span
                   aria-hidden="true"

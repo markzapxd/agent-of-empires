@@ -280,13 +280,11 @@ export function LiveTerminalView({ session, active = true, surface = "agent", te
       data-term={dataTerm}
       data-pane-focused={inputFocused || undefined}
     >
-      {/* Frame the pane like the TUI does: a faint always-on border marks the box edges and brightens to the teal
-         `terminal-active` color when this pane is selected (its input has focus), so on a multi-pane desktop it
-         is obvious which box keystrokes go to. */}
+      {/* Focused terminal panes use the Arise purple accent, never a legacy blue status color. */}
       <div
         aria-hidden="true"
         className={`pointer-events-none absolute inset-0 z-10 ring-inset transition-shadow ${
-          coarse ? "" : inputFocused ? "ring-2 ring-terminal-active" : "ring-1 ring-surface-700/40"
+          coarse ? "" : inputFocused ? "ring-2 ring-brand-500" : "ring-1 ring-surface-700/40"
         }`}
       />
 
