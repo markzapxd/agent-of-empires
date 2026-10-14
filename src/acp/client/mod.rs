@@ -1,9 +1,9 @@
 //! Acp daemon client.
 //!
-//! HTTP + WebSocket client for talking to an `aoe serve` daemon. Used
+//! HTTP + WebSocket client for talking to an `arise serve` daemon. Used
 //! by:
 //!
-//! - The `aoe acp *` CLI verbs (history, status, prompt, approve,
+//! - The `arise acp *` CLI verbs (history, status, prompt, approve,
 //!   cancel, tail, attach).
 //! - The TUI structured view (`src/tui/structured_view/`).
 //!

@@ -37,7 +37,7 @@ fn print_status(profile: &str) -> Result<()> {
         println!("Agent hooks: approved for this installation");
     } else {
         println!("Agent hooks: not approved");
-        println!("  Run `aoe hooks approve` to let AoE write them, or accept the");
+        println!("  Run `arise hooks approve` to let AoE write them, or accept the");
         println!("  dialog the TUI shows when you create a host session.");
     }
     print_disclosure(profile);

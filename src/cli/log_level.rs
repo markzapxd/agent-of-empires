@@ -27,7 +27,7 @@ pub struct LogLevelArgs {
 pub async fn run(args: LogLevelArgs) -> Result<()> {
     let urls = read_serve_urls();
     let Some(primary) = urls.first() else {
-        bail!("No aoe serve daemon is running, or serve.url is empty/missing.");
+        bail!("No arise serve daemon is running, or serve.url is empty/missing.");
     };
 
     let base = primary

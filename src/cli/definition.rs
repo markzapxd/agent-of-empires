@@ -61,8 +61,8 @@ pub struct Cli {
     /// session list. Equivalent to setting `AOE_DAEMON_URL`; pair with
     /// `AOE_DAEMON_TOKEN` for the bearer token. The session list goes
     /// through a bearer-only client, so `AOE_DAEMON_PASSPHRASE` does not
-    /// work here yet; it works for `aoe acp <verb>` against the same
-    /// `AOE_DAEMON_URL`. Only meaningful at the no-subcommand `aoe`
+    /// work here yet; it works for `arise acp <verb>` against the same
+    /// `AOE_DAEMON_URL`. Only meaningful at the no-subcommand `arise`
     /// invocation (the TUI dashboard); ignored otherwise.
     #[arg(long, global = true, env = "AOE_DAEMON_URL")]
     pub daemon_url: Option<String>,

@@ -86,7 +86,7 @@ impl AcpError {
         AcpError::Spawn(format!(
             "{err} (binary `{command}` not found on the daemon's PATH or in \
              any known node-manager bin dir; install it where the daemon can \
-             see it, or restart `aoe serve` from a shell where `which \
+             see it, or restart `arise serve` from a shell where `which \
              {command}` resolves){hint}"
         ))
     }

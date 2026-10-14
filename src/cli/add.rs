@@ -986,8 +986,7 @@ pub async fn run(profile: &str, args: AddArgs) -> Result<()> {
 
     if is_acp {
         println!();
-        println!("Next steps:");
-        println!("  aoe serve                   # Start the dashboard (worker auto-spawns)");
+        println!("  arise serve                   # Start the dashboard (worker auto-spawns)");
         println!("  Open the printed URL and select '{}'.", final_title);
         if args.launch {
             println!();

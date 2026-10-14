@@ -78,7 +78,7 @@ pub async fn run(args: LogsArgs) -> Result<()> {
 
     if !target_path.exists() {
         eprintln!("{} does not exist (yet).", target_path.display());
-        eprintln!("Tip: start `aoe` (TUI) or `aoe serve`, or run with AOE_LOG_LEVEL=debug.");
+        eprintln!("Tip: start `arise` (TUI) or `arise serve`, or run with AOE_LOG_LEVEL=debug.");
         return Ok(());
     }
 
