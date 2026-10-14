@@ -18,7 +18,7 @@ git clone https://github.com/agent-of-empires/agent-of-empires
 cd agent-of-empires && cargo build --release
 ```
 
-A source build leaves the binary at `target/release/aoe`. Verify any install with `aoe --version`.
+A source build leaves the binary at `target/release/arise`. Verify any install with `arise --version`.
 
 ## Updating
 

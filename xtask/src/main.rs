@@ -751,7 +751,7 @@ mod tests {
         }
         for ignored in [
             "README.md",
-            "target/debug/aoe",
+            "target/debug/arise",
             ".git/index",
             "Cargo.toml.swp",
             "web/src/App.tsx",

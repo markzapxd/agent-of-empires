@@ -34,7 +34,7 @@ impl AuthMode {
 #[derive(Args)]
 pub struct ServeArgs {
     /// Port to listen on (default: 8080; debug builds default to 8081 so a
-    /// `cargo run` instance does not collide with an installed release `aoe`).
+    /// `cargo run` instance does not collide with an installed release `arise`).
     #[arg(long)]
     pub port: Option<u16>,
 

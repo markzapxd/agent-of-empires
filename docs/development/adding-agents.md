@@ -57,7 +57,7 @@ cargo fmt && cargo clippy -- -D warnings
 cargo test --lib agents
 cargo test --lib <youragent>
 cargo test --lib container_config
-cargo build && ./target/debug/aoe agents
+cargo build && ./target/debug/arise agents
 ```
 
 ## Hook format reference

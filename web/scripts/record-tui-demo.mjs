@@ -22,7 +22,7 @@
 //        cd $SB/home/demo-projects/my-app
 //        HOME=$SB/home XDG_CONFIG_HOME=$SB/home/.config TERM=xterm-256color \
 //          ttyd --port 7683 --interface 127.0.0.1 -t rendererType=dom \
-//          -t fontSize=15 --writable target/release/aoe -p demo
+//          -t fontSize=15 --writable target/release/arise -p demo
 //   5. Run this script.
 // Status detection in live mode relies on the agent status hooks; accept the
 // one-time prompt (this script presses `y`) or pre-enable `agent_status_hooks`.

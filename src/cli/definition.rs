@@ -40,7 +40,7 @@ use super::worktree::WorktreeCommands;
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[derive(Parser)]
-#[command(name = "aoe")]
+#[command(name = "arise")]
 #[command(about = "Terminal session manager for AI coding agents")]
 #[command(version = VERSION)]
 #[command(
