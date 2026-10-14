@@ -168,7 +168,7 @@ jobs:
           # if the binary ever requires GLIBC symbols newer than the
           # manylinux base ships, fail the release before publishing.
           # objdump ships in binutils, already present in manylinux_2_28.
-          BIN="target/${{ matrix.target }}/release/aoe"
+          BIN="target/${{ matrix.target }}/release/arise"
           REQUIRED=$(objdump -T "$BIN" \
               | grep -oE 'GLIBC_[0-9]+\.[0-9]+' \
               | sed 's/GLIBC_//' \
