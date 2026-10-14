@@ -90,9 +90,9 @@
   --color-text-bright: #fafafa;
 
   /* Semantic Status */
-  --color-status-running: #3b82f6;
-  --color-status-waiting: #f59e0b;
-  --color-status-warning: #f59e0b;
+  --color-status-running: #a78bfa;
+  --color-status-waiting: #c084fc;
+  --color-status-warning: #c084fc;
   --color-status-fresh-idle: #a78bfa;
   --color-status-idle: #8e8ea0;
   --color-status-unread: #a78bfa;
@@ -106,13 +106,13 @@
   --color-selection: #26262e;
   --color-session-selection: #3a3a46;
   --color-session-active: #7c3aed;
-  --color-terminal-active: #3b82f6;
-  --color-branch: #3b82f6;
+  --color-terminal-active: #7c3aed;
+  --color-branch: #a78bfa;
   --color-sandbox: #a78bfa;
   --color-favorite: #c084fc;
   --color-diff-add: #4ade80;
   --color-diff-delete: #fb7185;
-  --color-diff-modified: #fbbf24;
+  --color-diff-modified: #c084fc;
   --color-diff-header: #a78bfa;
 
   /* Embedded terminal cold-load defaults for shadow-monarch. */
@@ -123,7 +123,7 @@
   --term-color-0: #0a0a0c;
   --term-color-1: #e5384f;
   --term-color-2: #4ade80;
-  --term-color-3: #f59e0b;
+  --term-color-3: #c084fc;
   --term-color-4: #3b82f6;
   --term-color-5: #7c3aed;
   --term-color-6: #a78bfa;
@@ -131,7 +131,7 @@
   --term-color-8: #3a3a46;
   --term-color-9: #fb7185;
   --term-color-10: #86efac;
-  --term-color-11: #fbbf24;
+  --term-color-11: #d8b4fe;
   --term-color-12: #60a5fa;
   --term-color-13: #c084fc;
   --term-color-14: #c4b5fd;
@@ -510,7 +510,7 @@ html[data-ios-standalone]:not([data-editing]) {
 @keyframes term-cursor-blink {
   0%,
   50% {
-    background-color: var(--term-cursor, #f59e0b);
+    background-color: var(--term-cursor, #7c3aed);
     color: var(--term-bg, #1c1c1f);
   }
   50.001%,
