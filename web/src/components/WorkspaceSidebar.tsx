@@ -230,8 +230,8 @@ export function WorkspaceSidebar(props: Props) {
         tabIndex={-1}
         style={{ width: effectiveWidth }}
         data-compact={compact ? "true" : undefined}
-        className={`fixed top-[calc(3rem+env(safe-area-inset-top))] bottom-0 z-40 md:static md:z-auto bg-surface-800 border-surface-700/60 flex flex-col md:h-full shrink-0 transition-transform duration-300 ease-in-out md:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500 ${
-          rightSide ? "right-0 border-l md:border-l-0 md:border-r" : "left-0 border-r"
+        className={`fixed top-[calc(3rem+env(safe-area-inset-top))] bottom-0 z-40 md:static md:z-auto bg-surface-800/95 border-surface-700/60 flex flex-col md:h-full shrink-0 transition-transform duration-300 ease-in-out md:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500 shadow-[4px_0_20px_rgba(0,0,0,0.18)] ${
+          rightSide ? "right-0 border-l md:border-l-0 md:border-r md:border-brand-500/25" : "left-0 border-r md:border-brand-500/25"
         } ${open ? "translate-x-0" : `${rightSide ? "translate-x-full" : "-translate-x-full"} md:hidden`}`}
       >
         <SidebarToolbar
