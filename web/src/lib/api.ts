@@ -1,3 +1,4 @@
+import { isAgentGraphSnapshot, type AgentGraphSnapshot } from "./agentGraph";
 import type { AgentLifecycleInfo } from "./agentProfiles";
 import { notifySettingsChanged } from "./settingsEvents";
 import { clientFormFactor } from "./formFactor";
@@ -106,6 +107,11 @@ async function okWithMessage(url: string, init: RequestInit): Promise<{ ok: bool
 export interface SessionsEnvelope {
   sessions: SessionResponse[];
   workspace_ordering: string[];
+}
+
+export async function fetchAgentGraph(signal?: AbortSignal): Promise<AgentGraphSnapshot | null> {
+  const snapshot = await fetchJson<unknown>("/api/agent-graph", { signal });
+  return isAgentGraphSnapshot(snapshot) ? snapshot : null;
 }
 
 export function fetchSessions(): Promise<SessionsEnvelope | null> {

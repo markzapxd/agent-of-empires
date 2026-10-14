@@ -130,6 +130,7 @@ const StructuredView = lazy(() =>
     default: m.StructuredView,
   })),
 );
+const AgentGraph = lazy(() => import("./components/agent-graph/AgentGraph").then((m) => ({ default: m.AgentGraph })));
 import { type PaneDisplay } from "./components/Dock";
 import { DockGroups, type DockGroupView } from "./components/DockGroups";
 import { BottomDock } from "./components/BottomDock";
@@ -350,6 +351,7 @@ function AppContent({
   const [searchParams, setSearchParams] = useSearchParams();
   const { settings: webSettings } = useWebSettings();
   const sessionMatch = useMatch("/session/:sessionId");
+  const graphMatch = useMatch("/agent-graph");
   const settingsRootMatch = useMatch("/settings");
   const settingsTabMatch = useMatch("/settings/:tab");
   const profilesMatch = useMatch("/profiles");
@@ -1848,6 +1850,23 @@ function AppContent({
   );
 
   const renderContent = () => {
+    if (graphMatch) {
+      return caps.cityhall ? (
+        <Dashboard
+          sessions={sessions}
+          onSelectSession={handleSelectSession}
+          onNewSession={handleNewSession}
+          onCloneFromUrl={handleCloneFromUrl}
+          onToggleSidebar={handleToggleSidebar}
+          readOnly={serverAbout?.read_only}
+          canManageProjects={false}
+        />
+      ) : (
+        <Suspense fallback={<MainPaneSkeleton />}>
+          <AgentGraph onOpenSession={handleSelectSession} onBack={handleGoDashboard} />
+        </Suspense>
+      );
+    }
     if (showSettings) {
       return (
         <SettingsView
@@ -1901,6 +1920,7 @@ function AppContent({
           onNewSession={handleNewSession}
           onCloneFromUrl={handleCloneFromUrl}
           onToggleSidebar={handleToggleSidebar}
+          onGoAgentGraph={caps.cityhall ? undefined : () => navigate("/agent-graph")}
           readOnly={serverAbout?.read_only}
           canManageProjects={caps.canManageProjects}
         />

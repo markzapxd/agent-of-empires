@@ -72,7 +72,8 @@ fn publisher_is_pane_agent(publisher: Option<&str>, pane_agent: Option<&str>) ->
     }
 }
 
-fn fired_by_pane_agent() -> bool {
+/// Without the launch pid and pane binary the publisher cannot prove authority and is rejected.
+pub(crate) fn fired_by_pane_agent() -> bool {
     let agent_pid = std::env::var("AOE_AGENT_PID")
         .ok()
         .and_then(|pid| pid.parse().ok());
@@ -80,7 +81,7 @@ fn fired_by_pane_agent() -> bool {
         .ok()
         .filter(|bin| !bin.is_empty());
     let (Some(agent_pid), Some(agent_bin)) = (agent_pid, agent_bin) else {
-        return true;
+        return false;
     };
     // A launch under another name (`company-codex` running Codex) is the agent too.
     let program = std::env::var("AOE_AGENT_PROGRAM")
@@ -107,9 +108,12 @@ fn walk_reaches_single_agent(
 ) -> bool {
     let mut pid = start;
     let mut agents = 0;
-    for hop in 0..MAX_ANCESTORS {
+    for _hop in 0..MAX_ANCESTORS {
+        if pid == agent_pid {
+            return agents == 1;
+        }
         let Some((ppid, argv0)) = parent_and_argv0(pid) else {
-            return hop == 0;
+            return false;
         };
         if std::path::Path::new(&argv0)
             .file_name()
@@ -117,9 +121,6 @@ fn walk_reaches_single_agent(
             .is_some_and(|name| agent_names.contains(&name))
         {
             agents += 1;
-        }
-        if pid == agent_pid {
-            return agents <= 1;
         }
         if ppid == 0 || ppid == pid {
             return false;
@@ -459,7 +460,7 @@ mod tests {
                 false,
             ),
             ("unreadable ancestor", 7, &[(10, 9, "sh")], false),
-            ("process table unavailable", 7, &[], true),
+            ("process table unavailable", 7, &[], false),
         ];
         for (name, agent_pid, chain, owned) in cases {
             let table: std::collections::HashMap<u32, (u32, String)> = chain

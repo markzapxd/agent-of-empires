@@ -2,6 +2,7 @@
 
 pub mod acp;
 pub mod add;
+pub mod agent_graph_hook;
 pub mod agents;
 pub mod cityhall;
 pub mod definition;

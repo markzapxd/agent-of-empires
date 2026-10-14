@@ -367,6 +367,18 @@ const CLAUDE_HOOK_EVENTS: &[HookEvent] = &[
         ..hook("UserPromptSubmit", HookStatus::Running)
     },
     hook("Stop", HookStatus::Idle),
+    HookEvent {
+        status: None,
+        ..hook("SessionEnd", HookStatus::Idle)
+    },
+    HookEvent {
+        status: None,
+        ..hook("SubagentStart", HookStatus::Idle)
+    },
+    HookEvent {
+        status: None,
+        ..hook("SubagentStop", HookStatus::Idle)
+    },
     hook("StopFailure", HookStatus::Idle),
     matched_hook(
         "Notification",
@@ -419,6 +431,18 @@ const CODEX_HOOK_EVENTS: &[HookEvent] = &[
     hook("PermissionRequest", HookStatus::Waiting),
     hook("PostToolUse", HookStatus::Running),
     hook("Stop", HookStatus::Idle),
+    HookEvent {
+        status: None,
+        ..hook("SessionEnd", HookStatus::Idle)
+    },
+    HookEvent {
+        status: None,
+        ..hook("SubagentStart", HookStatus::Idle)
+    },
+    HookEvent {
+        status: None,
+        ..hook("SubagentStop", HookStatus::Idle)
+    },
 ];
 
 const GEMINI_HOOK_EVENTS: &[HookEvent] = &[

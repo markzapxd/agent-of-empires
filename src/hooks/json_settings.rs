@@ -8,7 +8,10 @@ use serde_json::{Map, Value};
 
 use crate::agents::ResolvedHookEvent;
 
-use super::command::{hook_command_session_id, json_command_is_aoe, status_command_for_event};
+use super::command::{
+    agent_graph_hook_command, hook_command_session_id, json_command_is_aoe,
+    status_command_for_event,
+};
 use super::config_io::{
     log_installed, log_removed, log_unchanged, parse_json_or_empty, with_config_lock, write_json,
 };
@@ -23,7 +26,10 @@ fn event_commands(event: &ResolvedHookEvent, target: HookInstallTarget) -> Vec<S
     let status = event
         .status
         .map(|status| status_command_for_event(status, &event.waiting_tools, target));
-    identity.into_iter().chain(status).collect()
+    let graph = event
+        .publisher
+        .and_then(|publisher| agent_graph_hook_command(publisher, &event.name, target));
+    identity.into_iter().chain(status).chain(graph).collect()
 }
 
 /// One matcher group per event, appended under the event name so events that

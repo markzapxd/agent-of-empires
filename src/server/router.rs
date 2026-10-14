@@ -16,6 +16,8 @@ pub(super) fn build_router(state: Arc<AppState>) -> Router {
     let app = Router::new()
         // Explicit browser visibility heartbeat.
         .route("/api/presence", post(api::post_dashboard_presence))
+        .route("/api/agent-graph", get(api::get_agent_graph))
+        .route("/api/agent-graph/ws", get(api::agent_graph_ws))
         // Sessions
         .route(
             "/api/sessions",

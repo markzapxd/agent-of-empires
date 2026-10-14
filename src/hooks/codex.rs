@@ -21,6 +21,9 @@ pub(super) const CODEX_HOOK_EVENT_NAMES: &[&str] = &[
     "PermissionRequest",
     "PostToolUse",
     "Stop",
+    "SessionEnd",
+    "SubagentStart",
+    "SubagentStop",
     "PreCompact",
     "PostCompact",
 ];

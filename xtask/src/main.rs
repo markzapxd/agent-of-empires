@@ -129,6 +129,25 @@ fn is_watch_relevant(path: &Path) -> bool {
     )
 }
 
+#[cfg(unix)]
+fn dev_allowed_origins(host: &str, web_port: u16) -> Vec<String> {
+    let mut hosts = vec!["localhost", "127.0.0.1", "::1"];
+    if !matches!(host, "0.0.0.0" | "::" | "[::]") && !hosts.contains(&host) {
+        hosts.push(host);
+    }
+    hosts
+        .into_iter()
+        .map(|host| {
+            let host = if host.contains(':') && !host.starts_with('[') {
+                format!("[{host}]")
+            } else {
+                host.to_string()
+            };
+            format!("http://{host}:{web_port}")
+        })
+        .collect()
+}
+
 /// Each child runs in its own process group so one Ctrl-C tears the whole tree down.
 #[cfg(unix)]
 fn run_dev(args: DevArgs) {
@@ -155,10 +174,17 @@ fn run_dev(args: DevArgs) {
     // Detach stdin: a background process group touching the TTY gets SIGTTOU.
     let serve_port = args.serve_port;
     // The backend stays on loopback; remote devices reach it through Vite's proxy.
+    // Keep the browser-visible Vite origins in the backend allowlist. Vite rewrites
+    // Host to the proxy target but preserves Origin, including on WebSocket upgrades.
     let host = args.host.clone();
+    let allowed_origins = dev_allowed_origins(&host, args.web_port);
     let spawn_serve = || -> Child {
-        Command::new(&bin)
-            .args(["serve", "--no-auth", "--port", &serve_port.to_string()])
+        let mut command = Command::new(&bin);
+        command.args(["serve", "--no-auth", "--port", &serve_port.to_string()]);
+        for origin in &allowed_origins {
+            command.args(["--allowed-origin", origin]);
+        }
+        command
             .stdin(Stdio::null())
             .process_group(0)
             .spawn()
@@ -708,7 +734,7 @@ mod skill_check_tests {
 
 #[cfg(all(test, unix))]
 mod tests {
-    use super::is_watch_relevant;
+    use super::{dev_allowed_origins, is_watch_relevant};
     use std::path::Path;
 
     #[test]
@@ -732,5 +758,27 @@ mod tests {
         ] {
             assert!(!is_watch_relevant(Path::new(ignored)), "{ignored}");
         }
+    }
+
+    #[test]
+    fn dev_backend_allows_browser_visible_vite_origins() {
+        assert_eq!(
+            dev_allowed_origins("127.0.0.1", 5173),
+            [
+                "http://localhost:5173",
+                "http://127.0.0.1:5173",
+                "http://[::1]:5173",
+            ]
+        );
+        assert_eq!(
+            dev_allowed_origins("0.0.0.0", 4173),
+            [
+                "http://localhost:4173",
+                "http://127.0.0.1:4173",
+                "http://[::1]:4173",
+            ]
+        );
+        assert!(dev_allowed_origins("devbox.local", 5173)
+            .contains(&"http://devbox.local:5173".to_string()));
     }
 }

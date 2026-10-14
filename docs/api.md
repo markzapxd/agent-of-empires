@@ -6,6 +6,25 @@
 
 Every endpoint requires the token `aoe serve` printed (also visible in the TUI's Serve panel), unless the server runs with `--no-auth`. Send it as `Authorization: Bearer <token>`, as a `?token=` query parameter, or as the `aoe_token` cookie. Read-only mode (`--read-only`) answers every write endpoint with `403 read_only`.
 
+## GET /api/agent-graph
+
+Returns a local observability snapshot: `{ "nodes": [...], "edges": [...], "cursor": 0 }`.
+The cursor advances when recorded graph state changes. Nodes include session and
+native-subagent identity, provider, project, available task, status, timestamps
+and session availability. Edges include the recorded relationship and its
+explicit evidence. Historical nodes remain after session removal.
+
+`GET /api/agent-graph/ws` upgrades to a read-only WebSocket. Frames have the form
+`{ "type": "snapshot", "snapshot": {...} }` initially and
+`{ "type": "update", "snapshot": {...} }` for later full snapshots. Clients
+replace their graph atomically and discard older cursors; reconnecting obtains a
+fresh snapshot. Both endpoints use the dashboard's existing authentication and
+origin policies, are available in read-only mode, and are refused in CityHall
+mode. They never start or prompt an agent.
+
+See [Agent Graph](guides/web-dashboard.md#agent-graph) for lifecycle semantics,
+local collection, privacy and identification limits.
+
 ## GET /api/sessions
 
 Lists sessions, including trashed and archived ones. Pass `state` to filter server-side: `live` excludes trashed and archived sessions, `trashed` returns only trashed ones, and `all` (the default) filters nothing. An unrecognized value is rejected with `400` rather than ignored.

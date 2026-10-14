@@ -9,8 +9,73 @@ This page covers running the server, access modes, security, and PWA install. Th
 - **[Dashboard & workspaces](web/dashboard.md)**: layout, the session wizard, sorting and grouping, triage, settings and profiles, mobile behavior.
 - **[Terminal view](web/terminal.md)**: agent and paired terminals, reconnect behavior, read-only mode.
 - **[Diff view](diff-view.md#in-the-web-dashboard)**: reviewing changed files and commenting on them.
+- **[Agent Graph](#agent-graph)**: local session and delegation observability, including historical relationships.
 
 The dashboard ships in every release binary, so `aoe serve` just works. Building from source needs the `web` Cargo feature and Node; a plain `cargo build` still serves the API, with no dashboard behind it.
+
+## Agent Graph
+
+Open **Agent Graph** from the dashboard to inspect sessions and their recorded
+relationships. The graph uses React Flow for pan, zoom and fit-to-view. Filter
+by project, agent and status; include historical nodes to inspect sessions that
+have ended or been removed. A filter hides nodes, not rewrites their ancestry.
+
+Each node shows the responsible agent, task when supplied, state and duration.
+An unavailable task is shown as unknown, not generated from a conversation.
+Open a live session from its node to return to the existing terminal or
+conversation view. Native subagents do not necessarily have an independent AoE
+session: their session link opens the recorded supervisor when available.
+Deleted sessions keep historical details but cannot be opened.
+
+### Explicit relationships
+
+Use the existing parent flag to record a real delegation between AoE sessions:
+
+```bash
+aoe add /path/to/project --tool claude --title coordinator
+aoe add /path/to/project --tool codex --title implementation --parent coordinator
+```
+
+The parent must be an existing AoE session. The existing restriction on nesting
+AoE subsessions still applies. A native conversation fork is not a delegation
+and does not create a graph edge by itself.
+
+Claude and Codex command hooks can additionally report native subagent lifecycle
+with explicit identifiers when AoE can bind the event to the owning pane. Support depends on the installed agent's hook
+capabilities. A parent native session identifier establishes an owning context,
+not an otherwise unknown immediate nested parent. The graph does not infer
+relationships from matching paths, timestamps, titles or process proximity.
+When the provider exposes no reliable identity or relationship, that information
+remains unknown.
+
+`Stop` ends a turn, not the session. Subsequent turns can run in the same node.
+`SessionEnd`, observed process termination and explicit removal are separate
+lifecycle events; a lost process is not recorded as a successful completion.
+
+### Local collection and history
+
+**Observability makes no AI calls and consumes no AI tokens.** Collection and
+updates use local metadata, command hooks, the existing status detector and an
+authenticated WebSocket. Opening the graph does not prompt an agent, start an
+ACP worker, generate a title or summarize a conversation. This guarantee applies
+to observability; ordinary agent work and separately enabled AI features retain
+their own behavior and costs.
+
+History is stored locally, independently of removable conversation history.
+Session deletion does not remove recorded relationships. Existing sessions are
+imported as observed snapshots with incomplete earlier history; events that
+predate collection and already-deleted sessions cannot be reconstructed.
+
+Graph metadata can contain project paths, titles and a bounded task supplied
+locally. It is visible to authenticated dashboard viewers under the same access
+policy as the dashboard; read-only viewers can inspect it but cannot control
+agents through the graph. Avoid secrets in task descriptions. The graph does
+not need transcript scanning, response storage or provider credentials.
+
+A disconnected graph retains its last snapshot and marks the connection stale;
+it refreshes when the connection returns. CityHall client mode does not expose
+Agent Graph, since its session visibility policy is narrower than the ordinary
+dashboard.
 
 ## Starting the server
 

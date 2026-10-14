@@ -5,6 +5,7 @@ use clap_complete::Shell;
 
 use super::acp::AcpCommands;
 use super::add::AddArgs;
+use super::agent_graph_hook::AgentGraphHookArgs;
 use super::cityhall::CityHallCommands;
 use super::extract_session_id::ExtractSessionIdArgs;
 use super::group::GroupCommands;
@@ -245,6 +246,9 @@ pub enum Commands {
     #[command(name = "__extract-session-id", hide = true)]
     ExtractSessionId(ExtractSessionIdArgs),
 
+    #[command(name = "__agent-graph-hook", hide = true)]
+    AgentGraphHook(AgentGraphHookArgs),
+
     /// Uninstall Agent of Empires
     Uninstall(UninstallArgs),
 
@@ -338,6 +342,7 @@ pub fn command_name(command: &Commands) -> Option<&'static str> {
         Commands::Acp { .. } => "acp",
         Commands::AcpRunner(_) => return None,
         Commands::ExtractSessionId(_) => return None,
+        Commands::AgentGraphHook(_) => return None,
         Commands::Uninstall(_) => "uninstall",
         Commands::Update(_) => "update",
         Commands::Migrate => "migrate",
@@ -376,8 +381,20 @@ mod tests {
                 "`{name}` is not an identifier-safe token"
             );
         }
-        let cli = Cli::try_parse_from(["aoe", "__extract-session-id"]).expect("parse");
-        assert_eq!(command_name(cli.command.as_ref().expect("command")), None);
+        for argv in [
+            &["aoe", "__extract-session-id"][..],
+            &[
+                "aoe",
+                "__agent-graph-hook",
+                "--provider",
+                "claude",
+                "--event",
+                "Stop",
+            ][..],
+        ] {
+            let cli = Cli::try_parse_from(argv).expect("parse hidden command");
+            assert_eq!(command_name(cli.command.as_ref().expect("command")), None);
+        }
     }
 
     #[test]

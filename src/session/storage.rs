@@ -1103,6 +1103,20 @@ impl Storage {
         F: FnOnce(&mut Vec<Instance>, &mut Vec<Group>) -> Result<R>,
     {
         let (mut instances, mut groups) = self.load_with_groups()?;
+        let profile_dir = self
+            .sessions_path
+            .parent()
+            .ok_or_else(|| anyhow!("sessions path has no parent"))?;
+        if let Err(error) = crate::observability::observe_sessions(
+            &self.profile,
+            profile_dir,
+            &instances,
+            crate::observability::ObserveOptions {
+                mark_missing_unavailable: true,
+            },
+        ) {
+            tracing::warn!(profile = %self.profile, "agent graph pre-write reconciliation failed: {error:#}");
+        }
         let groups_before = groups.clone();
         let result = f(&mut instances, &mut groups)?;
 
@@ -1129,6 +1143,16 @@ impl Storage {
 
         atomic_write(&self.sessions_path, &instances_buf)?;
         self.file_watch.notify_local_change(&self.sessions_path);
+        if let Err(error) = crate::observability::observe_sessions(
+            &self.profile,
+            profile_dir,
+            &instances,
+            crate::observability::ObserveOptions {
+                mark_missing_unavailable: true,
+            },
+        ) {
+            tracing::warn!(profile = %self.profile, "agent graph post-write reconciliation failed: {error:#}");
+        }
         Ok(result)
     }
 
@@ -1272,6 +1296,21 @@ impl Storage {
 
         let (mut source_instances, mut source_groups) = self.load_with_groups()?;
         let (mut target_instances, mut target_groups) = target.load_with_groups()?;
+        for (storage, dir, rows) in [
+            (self, source_dir.as_path(), &source_instances),
+            (target, target_dir.as_path(), &target_instances),
+        ] {
+            if let Err(error) = crate::observability::observe_sessions(
+                &storage.profile,
+                dir,
+                rows,
+                crate::observability::ObserveOptions {
+                    mark_missing_unavailable: true,
+                },
+            ) {
+                tracing::warn!(profile = %storage.profile, "agent graph pre-move reconciliation failed: {error:#}");
+            }
+        }
         let mut ids = std::collections::HashSet::with_capacity(changes.len());
         let mut moved = Vec::with_capacity(changes.len());
         for (before, after) in changes {
@@ -1589,6 +1628,21 @@ impl Storage {
             self.file_watch.notify_local_change(&source_groups_path);
         }
         self.file_watch.notify_local_change(&self.sessions_path);
+        for (storage, dir, rows) in [
+            (self, source_dir.as_path(), &source_instances),
+            (target, target_dir.as_path(), &target_instances),
+        ] {
+            if let Err(error) = crate::observability::observe_sessions(
+                &storage.profile,
+                dir,
+                rows,
+                crate::observability::ObserveOptions {
+                    mark_missing_unavailable: true,
+                },
+            ) {
+                tracing::warn!(profile = %storage.profile, "agent graph post-move reconciliation failed: {error:#}");
+            }
+        }
         Ok(moved)
     }
 }
@@ -3477,6 +3531,45 @@ mod tests {
         let loaded = storage_after.load()?;
         assert_eq!(loaded.len(), 1);
         assert_eq!(loaded[0].title, "after-poison");
+        Ok(())
+    }
+
+    #[test]
+    fn profile_move_keeps_source_graph_ancestor_and_creates_target_node() -> Result<()> {
+        let temp = tempdir()?;
+        let source_dir = temp.path().join("graph-source");
+        let target_dir = temp.path().join("graph-target");
+        fs::create_dir_all(&source_dir)?;
+        fs::create_dir_all(&target_dir)?;
+        let source = Storage::new_for_test_path("graph-source", source_dir.join("sessions.json"));
+        let target = Storage::new_for_test_path("graph-target", target_dir.join("sessions.json"));
+        let before = Instance::new("ancestor", "/repo");
+        let id = before.id.clone();
+        source.update(|instances, _| {
+            instances.push(before.clone());
+            Ok(())
+        })?;
+        target.update(|_, _| Ok(()))?;
+        source.move_instances_to(
+            &target,
+            &[(before.clone(), before.clone())],
+            &GroupMovePlan::single("", ""),
+            |_, _| Ok(()),
+        )?;
+        let source_graph = crate::observability::snapshot(&source_dir)?;
+        let target_graph = crate::observability::snapshot(&target_dir)?;
+        assert_eq!(source_graph.nodes.len(), 1);
+        assert_eq!(
+            source_graph.nodes[0].id,
+            format!("session:graph-source:{id}")
+        );
+        assert!(!source_graph.nodes[0].available);
+        assert_eq!(target_graph.nodes.len(), 1);
+        assert_eq!(
+            target_graph.nodes[0].id,
+            format!("session:graph-target:{id}")
+        );
+        assert!(target_graph.nodes[0].available);
         Ok(())
     }
 

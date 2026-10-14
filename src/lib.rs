@@ -17,6 +17,7 @@ pub mod github;
 pub mod hooks;
 pub mod logging;
 pub mod migrations;
+pub mod observability;
 pub mod plugin;
 pub mod process;
 pub mod server;

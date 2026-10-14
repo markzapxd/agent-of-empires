@@ -27,7 +27,7 @@ AOE_TERMINAL_TRACE=1 cargo run
 aoe logs
 ```
 
-`cargo xtask dev` runs a dashboard-enabled debug backend on 8081 and Vite with HMR on 5173; `--watch` rebuilds and restarts the backend when Rust inputs change, leaving the previous backend running if a rebuild fails.
+`cargo xtask dev` runs a dashboard-enabled debug backend on 8081 and Vite with HMR on 5173. It registers the Vite URL as an allowed browser origin on the backend; `--watch` rebuilds and restarts the backend when Rust inputs change, leaving the previous backend running if a rebuild fails.
 
 Debug builds are isolated from installed release state:
 

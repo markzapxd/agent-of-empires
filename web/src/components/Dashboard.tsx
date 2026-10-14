@@ -18,6 +18,7 @@ interface Props {
    *  cloning a repo is a project-management action. Defaults to true. See #7. */
   canManageProjects?: boolean;
   onToggleSidebar: () => void;
+  onGoAgentGraph?: () => void;
   readOnly?: boolean;
 }
 
@@ -27,6 +28,7 @@ export function Dashboard({
   onNewSession,
   onCloneFromUrl,
   onToggleSidebar,
+  onGoAgentGraph,
   readOnly,
   canManageProjects = true,
 }: Props) {
@@ -196,6 +198,16 @@ export function Dashboard({
         </StrokeIcon>
         Show sessions
       </button>
+
+      {onGoAgentGraph && (
+        <button
+          type="button"
+          onClick={onGoAgentGraph}
+          className="mb-4 rounded-md border border-surface-600 bg-surface-850 px-3 py-2 text-xs font-mono text-text-primary hover:bg-surface-800 focus-visible:outline-2 focus-visible:outline-brand-600"
+        >
+          View Agent Graph
+        </button>
+      )}
 
       {/* Action panes */}
       {readOnly ? (

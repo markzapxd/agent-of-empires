@@ -4,6 +4,7 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { codecovVitePlugin } from "@codecov/vite-plugin";
 
+export const API_PROXY = "^/api(?:/|$)";
 export const SESSION_WS_PROXY = "^/sessions/.+/(?:ws|live-ws)(?:\\?.*)?$";
 
 export default defineConfig(({ mode, command }) => {
@@ -22,7 +23,11 @@ export default defineConfig(({ mode, command }) => {
 
   const proxy = httpTarget
     ? {
-        "/api": { target: httpTarget, changeOrigin: true },
+        [API_PROXY]: {
+          target: httpTarget,
+          changeOrigin: true,
+          ws: true,
+        },
         [SESSION_WS_PROXY]: {
           target: httpTarget.replace(/^http/, "ws"),
           ws: true,

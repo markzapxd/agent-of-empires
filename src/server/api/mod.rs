@@ -4,6 +4,7 @@
 pub(super) use super::AppState;
 
 mod acp;
+mod agent_graph;
 mod client_log;
 mod file_provenance;
 mod git;
@@ -27,6 +28,7 @@ pub use acp::{
     switch_acp_agent, switch_acp_provider,
 };
 
+pub use agent_graph::{agent_graph_ws, get_agent_graph};
 pub use queue::{queue_clear, queue_edit, queue_enqueue, queue_list, queue_remove};
 
 pub use client_log::post_client_log;

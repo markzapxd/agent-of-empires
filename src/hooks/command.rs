@@ -136,6 +136,30 @@ fn hook_command_with_write(write: &str, base: &str, target: HookInstallTarget) -
     )
 }
 
+pub(crate) fn agent_graph_hook_command(
+    provider: &str,
+    event: &str,
+    target: HookInstallTarget,
+) -> Option<String> {
+    if target != HookInstallTarget::Host || !matches!(provider, "claude" | "codex") {
+        return None;
+    }
+    if !matches!(
+        event,
+        "SessionStart"
+            | "UserPromptSubmit"
+            | "Stop"
+            | "SessionEnd"
+            | "SubagentStart"
+            | "SubagentStop"
+    ) {
+        return None;
+    }
+    Some(format!(
+        "sh -c '[ -n \"$AOE_HOOK_BIN\" ] && [ -x \"$AOE_HOOK_BIN\" ] && \"$AOE_HOOK_BIN\" __agent-graph-hook --provider {provider} --event {event} 2>/dev/null; exit 0 # {AOE_HOOK_MARKER}'"
+    ))
+}
+
 /// Command extracting the top-level session id from the hook's stdin JSON into
 /// the `session_id` sidecar. The host calls the pinned `aoe` binary; the
 /// sandbox image has no `aoe`, so it uses `jq` and silently skips without it.
