@@ -794,10 +794,31 @@ impl App {
                             if !matches!(mouse.kind, MouseEventKind::Moved) {
                                 crate::session::write_tui_activity();
                             }
-                            // Structured preview owns wheel and click input. A
-                            // sub-agent title drag additionally captures its
-                            // Drag/Up pair until release; other drags remain home
-                            // preview selection gestures.
+                            // Native Claude chat windows capture their drag through release.
+                            let native_subagent_dragging = self.home.native_subagent_dragging();
+                            if native_subagent_dragging
+                                && matches!(
+                                    mouse.kind,
+                                    MouseEventKind::Drag(MouseButton::Left)
+                                        | MouseEventKind::Up(MouseButton::Left)
+                                )
+                            {
+                                let changed = match mouse.kind {
+                                    MouseEventKind::Drag(MouseButton::Left) => self
+                                        .home
+                                        .native_subagent_drag_move(mouse.column, mouse.row),
+                                    MouseEventKind::Up(MouseButton::Left) => {
+                                        self.home.native_subagent_drag_end()
+                                    }
+                                    _ => false,
+                                };
+                                if changed {
+                                    self.draw(terminal)?;
+                                }
+                                continue;
+                            }
+                            // Structured preview owns wheel and click input. Its
+                            // title drag also captures Drag/Up through release.
                                 let in_pane = self.home.structured_preview.is_some()
                                     && self.home.preview_pane_area.contains(
                                         ratatui::layout::Position::from((
@@ -952,13 +973,36 @@ impl App {
                             // Left-click priority: context menu, dialog (the diff
                             // view included), sidebar toggle, diagnostics, tips
                             // badge, drag start, list row.
+                            if matches!(mouse.kind, MouseEventKind::ScrollUp)
+                                && self.home.native_subagent_scroll(
+                                    mouse.column,
+                                    mouse.row,
+                                    -3,
+                                )
+                            {
+                                self.draw(terminal)?;
+                                continue;
+                            }
+                            if matches!(mouse.kind, MouseEventKind::ScrollDown)
+                                && self.home.native_subagent_scroll(
+                                    mouse.column,
+                                    mouse.row,
+                                    3,
+                                )
+                            {
+                                self.draw(terminal)?;
+                                continue;
+                            }
                             let click_action = if matches!(
                                 mouse.kind,
                                 MouseEventKind::Down(MouseButton::Left)
                             ) {
                                 if self
                                     .home
-                                    .handle_context_menu_click(mouse.column, mouse.row)
+                                    .native_subagent_mouse_down(mouse.column, mouse.row)
+                                    || self
+                                        .home
+                                        .handle_context_menu_click(mouse.column, mouse.row)
                                 {
                                     self.draw(terminal)?;
                                     None
@@ -1196,6 +1240,7 @@ impl App {
             // Diffed redraw, not `needs_redraw`: a clear per tick strobes.
             full |= self.home.tick_preview_autoscroll();
             refresh_needed |= self.home.tick_unread_dwell(std::time::Instant::now());
+            full |= self.home.refresh_native_subagent_windows();
 
             // Banner changes shift the layout, so they need a full clear.
             let banner_changed = self.poll_update_check()

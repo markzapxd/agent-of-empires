@@ -13,6 +13,7 @@ mod layout;
 mod lifecycle;
 mod live_send;
 mod live_send_prep;
+mod native_subagent_transcript;
 mod operations;
 mod overlays;
 mod panes;
@@ -28,6 +29,7 @@ mod selection;
 mod send;
 mod status;
 mod store_move;
+mod subagent_windows;
 #[cfg(test)]
 mod tests;
 mod user_action;
@@ -259,6 +261,7 @@ pub struct HomeView {
     pub(in crate::tui) structured_preview:
         Option<crate::tui::structured_view::embedded::EmbeddedView>,
     pub(in crate::tui) structured_preview_pending: bool,
+    pub(super) native_subagent_windows: subagent_windows::NativeSubagentWindows,
     /// The last frame painted the mounted structured transcript into the preview, so
     /// `preview_text_view` maps transcript rows rather than the tmux capture.
     pub(super) structured_transcript_painted: bool,

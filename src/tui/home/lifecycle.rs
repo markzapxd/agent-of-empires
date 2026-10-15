@@ -339,6 +339,7 @@ impl HomeView {
             pending_daemon_start_session: None,
             structured_preview: None,
             structured_preview_pending: false,
+            native_subagent_windows: super::subagent_windows::NativeSubagentWindows::new(),
             structured_transcript_painted: false,
             pending_force_remove_session: None,
             pending_trash_session: None,

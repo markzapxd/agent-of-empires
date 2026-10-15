@@ -31,7 +31,7 @@ fn session_offset(created_at: &DateTime<Utc>) -> usize {
     created_at.timestamp_millis() as usize
 }
 
-/// Build the list-pane title. `prefix` is the leading label ("aoe", "Terminals",
+/// Build the list-pane title. `prefix` is the leading label ("arise", "Terminals",
 /// "Tool: <name>"); `profile` is `Some(name)` only when a real filter is active, so the
 /// default all-profiles state drops the `[<profile>]` segment. Group and sort state hang
 /// off the prefix as `· project` / `· <sort label>`, each dropped when it is the default.
@@ -1064,6 +1064,10 @@ impl HomeView {
             );
         }
 
+        // Native Claude sub-agents belong to terminal sessions, so their chats
+        // float above the normal home panes but below modal dialogs.
+        self.render_native_subagent_windows(frame, area, theme);
+
         // Render dialogs on top
         if self.show_help {
             let live_on_enter = self.help_live_on_enter().unwrap_or(matches!(
@@ -1229,7 +1233,7 @@ impl HomeView {
         let profile = self.active_profile_display();
         let mut title = match &self.view_mode {
             ViewMode::Structured => {
-                compose_list_title("aoe", profile, self.group_by, self.sort_order)
+                compose_list_title("arise", profile, self.group_by, self.sort_order)
             }
             ViewMode::Terminal => {
                 compose_list_title("Terminals", profile, self.group_by, self.sort_order)
@@ -4513,39 +4517,39 @@ mod tests {
         // Newest and Manual are the defaults and add no suffix; the profile tag shows only
         // while a profile filter is active.
         let cases = [
-            ("aoe", None, Manual, Newest, " aoe "),
+            ("arise", None, Manual, Newest, " arise "),
             (
-                "aoe",
+                "arise",
                 Some("my-profile"),
                 Manual,
                 Newest,
-                " aoe [my-profile] ",
+                " arise [my-profile] ",
             ),
-            ("aoe", None, Project, Newest, " aoe · project "),
-            ("aoe", None, Org, Newest, " aoe · org "),
-            ("aoe", None, Manual, LastActivity, " aoe · Recent "),
-            ("aoe", None, Manual, Oldest, " aoe · Oldest "),
-            ("aoe", None, Manual, ZA, " aoe · Z-A "),
+            ("arise", None, Project, Newest, " arise · project "),
+            ("arise", None, Org, Newest, " arise · org "),
+            ("arise", None, Manual, LastActivity, " arise · Recent "),
+            ("arise", None, Manual, Oldest, " arise · Oldest "),
+            ("arise", None, Manual, ZA, " arise · Z-A "),
             (
-                "aoe",
+                "arise",
                 None,
                 Project,
                 LastActivity,
-                " aoe · project · Recent ",
+                " arise · project · Recent ",
             ),
             (
-                "aoe",
+                "arise",
                 Some("alpha"),
                 Manual,
                 LastActivity,
-                " aoe [alpha] · Recent ",
+                " arise [alpha] · Recent ",
             ),
             (
-                "aoe",
+                "arise",
                 Some("alpha"),
                 Project,
                 LastActivity,
-                " aoe [alpha] · project · Recent ",
+                " arise [alpha] · project · Recent ",
             ),
             ("Tool: foo", None, Manual, AZ, " Tool: foo · A-Z "),
             (
