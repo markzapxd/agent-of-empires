@@ -85,6 +85,9 @@ fn selected_terminal_claude_session_opens_draggable_chat() {
     assert!(screen.contains("Analyze TUI · running"), "{screen}");
     assert!(screen.contains("live reply"), "{screen}");
 
+    assert!(!env.view.native_subagent_edit_mode());
+    assert!(!env.view.native_subagent_mouse_down(0, 0));
+    assert!(env.view.native_subagent_toggle_edit_mode());
     let target = env.view.native_subagent_windows.targets[0].clone();
     let down_x = target.title.x + 2;
     assert!(env.view.native_subagent_mouse_down(down_x, target.title.y));
@@ -95,6 +98,23 @@ fn selected_terminal_claude_session_opens_draggable_chat() {
     assert!(env.view.native_subagent_drag_end());
     let moved = env.view.native_subagent_windows.windows.last().unwrap();
     assert!(moved.position.is_some());
+
+    let screen = render_home_to_string(&mut env.view, 120, 40);
+    assert!(screen.contains("EDIT: drag title"), "{screen}");
+    let resize = env.view.native_subagent_windows.targets[0].resize;
+    assert!(env.view.native_subagent_mouse_down(resize.x, resize.y));
+    assert!(env
+        .view
+        .native_subagent_drag_move(resize.x + 8, resize.y + 3));
+    assert!(env.view.native_subagent_drag_end());
+    assert!(env
+        .view
+        .native_subagent_windows
+        .windows
+        .last()
+        .unwrap()
+        .size
+        .is_some());
 }
 
 #[test]
@@ -108,6 +128,7 @@ fn closed_native_chat_does_not_reopen_on_refresh() {
     )
     .unwrap();
     wait_for_window(&mut env.view);
+    assert!(env.view.native_subagent_toggle_edit_mode());
     render_home_to_string(&mut env.view, 120, 40);
     let close = env.view.native_subagent_windows.targets[0].close;
     assert!(env.view.native_subagent_mouse_down(close.x, close.y));

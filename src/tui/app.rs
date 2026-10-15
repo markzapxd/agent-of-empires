@@ -725,6 +725,12 @@ impl App {
                                             Event::Paste(text) => { self.home.handle_paste(&text); }
                                             Event::Resize(_, _) => { terminal.autoresize()?; self.needs_redraw = true; }
                                             Event::Mouse(mouse) => {
+                                                if matches!(mouse.kind, MouseEventKind::Down(MouseButton::Left))
+                                                    && self.home.native_subagent_mouse_down(mouse.column, mouse.row)
+                                                {
+                                                    self.draw(terminal)?;
+                                                    continue;
+                                                }
                                                 let hit_list = self.home.hit_list(mouse.column, mouse.row);
                                                 let hit_preview = self.home.hit_preview(mouse.column, mouse.row);
                                                 let hit_diff = self.home.is_diff_open()
@@ -815,6 +821,34 @@ impl App {
                                 if changed {
                                     self.draw(terminal)?;
                                 }
+                                continue;
+                            }
+                            if matches!(mouse.kind, MouseEventKind::Down(MouseButton::Left))
+                                && self
+                                    .home
+                                    .native_subagent_mouse_down(mouse.column, mouse.row)
+                            {
+                                self.draw(terminal)?;
+                                continue;
+                            }
+                            if matches!(mouse.kind, MouseEventKind::ScrollUp)
+                                && self.home.native_subagent_scroll(
+                                    mouse.column,
+                                    mouse.row,
+                                    -3,
+                                )
+                            {
+                                self.draw(terminal)?;
+                                continue;
+                            }
+                            if matches!(mouse.kind, MouseEventKind::ScrollDown)
+                                && self.home.native_subagent_scroll(
+                                    mouse.column,
+                                    mouse.row,
+                                    3,
+                                )
+                            {
+                                self.draw(terminal)?;
                                 continue;
                             }
                             // Structured preview owns wheel and click input. Its
@@ -973,36 +1007,13 @@ impl App {
                             // Left-click priority: context menu, dialog (the diff
                             // view included), sidebar toggle, diagnostics, tips
                             // badge, drag start, list row.
-                            if matches!(mouse.kind, MouseEventKind::ScrollUp)
-                                && self.home.native_subagent_scroll(
-                                    mouse.column,
-                                    mouse.row,
-                                    -3,
-                                )
-                            {
-                                self.draw(terminal)?;
-                                continue;
-                            }
-                            if matches!(mouse.kind, MouseEventKind::ScrollDown)
-                                && self.home.native_subagent_scroll(
-                                    mouse.column,
-                                    mouse.row,
-                                    3,
-                                )
-                            {
-                                self.draw(terminal)?;
-                                continue;
-                            }
                             let click_action = if matches!(
                                 mouse.kind,
                                 MouseEventKind::Down(MouseButton::Left)
                             ) {
                                 if self
                                     .home
-                                    .native_subagent_mouse_down(mouse.column, mouse.row)
-                                    || self
-                                        .home
-                                        .handle_context_menu_click(mouse.column, mouse.row)
+                                    .handle_context_menu_click(mouse.column, mouse.row)
                                 {
                                     self.draw(terminal)?;
                                     None

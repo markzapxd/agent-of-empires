@@ -18,6 +18,8 @@ use crate::tui::worker::Worker;
 const REFRESH_INTERVAL: Duration = Duration::from_millis(500);
 const WINDOW_WIDTH: u16 = 62;
 const WINDOW_HEIGHT: u16 = 18;
+const MIN_WINDOW_WIDTH: u16 = 28;
+const MIN_WINDOW_HEIGHT: u16 = 8;
 
 #[derive(Clone)]
 pub(super) struct NativeSubagentMessage {
@@ -36,6 +38,7 @@ pub(super) struct NativeSubagentRecord {
 pub(super) struct NativeSubagentWindow {
     pub(super) agent_id: String,
     pub(super) position: Option<(u16, u16)>,
+    pub(super) size: Option<(u16, u16)>,
     pub(super) scroll: u16,
     pub(super) last_scroll_max: u16,
 }
@@ -46,13 +49,19 @@ pub(super) struct NativeSubagentTarget {
     pub(super) area: Rect,
     pub(super) title: Rect,
     pub(super) close: Rect,
+    pub(super) resize: Rect,
+}
+
+#[derive(Clone, Copy)]
+pub(super) enum NativeSubagentDragKind {
+    Move { grab_x: u16, grab_y: u16 },
+    Resize { origin_x: u16, origin_y: u16 },
 }
 
 #[derive(Clone)]
 pub(super) struct NativeSubagentDrag {
     pub(super) agent_id: String,
-    pub(super) grab_x: u16,
-    pub(super) grab_y: u16,
+    pub(super) kind: NativeSubagentDragKind,
 }
 
 #[derive(Clone)]
@@ -73,6 +82,7 @@ pub(in crate::tui) struct NativeSubagentWindows {
     known: HashSet<String>,
     pub(super) targets: Vec<NativeSubagentTarget>,
     drag: Option<NativeSubagentDrag>,
+    edit_mode: bool,
     worker: Worker<NativeSubagentRequest, NativeSubagentResult>,
     in_flight: bool,
     pub(super) last_refresh: Option<Instant>,
@@ -87,6 +97,7 @@ impl NativeSubagentWindows {
             known: HashSet::new(),
             targets: Vec::new(),
             drag: None,
+            edit_mode: false,
             worker: Worker::spawn("aoe-native-subagent", |request: NativeSubagentRequest| {
                 let records = scan_subagents(&request.transcript);
                 NativeSubagentResult {
@@ -109,6 +120,7 @@ impl NativeSubagentWindows {
         self.known.clear();
         self.targets.clear();
         self.drag = None;
+        self.edit_mode = false;
         self.in_flight = false;
         self.last_refresh = None;
         true
@@ -133,6 +145,7 @@ impl NativeSubagentWindows {
                 self.windows.push(NativeSubagentWindow {
                     agent_id: record.id.clone(),
                     position: None,
+                    size: None,
                     scroll: u16::MAX,
                     last_scroll_max: 0,
                 });
@@ -229,7 +242,7 @@ impl HomeView {
             else {
                 continue;
             };
-            let popup = window_rect(area, window.position, index);
+            let popup = window_rect(area, window.position, window.size, index);
             if popup.width < 8 || popup.height < 4 {
                 continue;
             }
@@ -239,20 +252,47 @@ impl HomeView {
             } else {
                 format!(" {} · {status} ", record.description)
             };
+            let edit_mode = self.native_subagent_windows.edit_mode;
+            let border_style =
+                Style::default().fg(if edit_mode { theme.accent } else { theme.title });
             let block = Block::default()
                 .borders(Borders::ALL)
                 .border_type(BorderType::Rounded)
                 .padding(Padding::horizontal(1))
                 .title(title)
-                .border_style(Style::default().fg(theme.title));
+                .title_bottom(Line::from(Span::styled(
+                    if edit_mode {
+                        " EDIT: drag title · drag ◢ resize · × close · P done "
+                    } else {
+                        " P edit "
+                    },
+                    Style::default().fg(if edit_mode {
+                        theme.accent
+                    } else {
+                        theme.dimmed
+                    }),
+                )))
+                .border_style(border_style);
             let inner = block.inner(popup);
             frame.render_widget(Clear, popup);
             frame.render_widget(block, popup);
             let close = Rect::new(popup.right().saturating_sub(4), popup.y, 3, 1);
-            frame.render_widget(
-                Paragraph::new(Span::styled(" × ", Style::default().fg(theme.dimmed))),
-                close,
+            let resize = Rect::new(
+                popup.right().saturating_sub(3),
+                popup.bottom().saturating_sub(2),
+                3,
+                2,
             );
+            if edit_mode {
+                frame.render_widget(
+                    Paragraph::new(Span::styled(" × ", Style::default().fg(theme.accent))),
+                    close,
+                );
+                frame.render_widget(
+                    Paragraph::new(Span::styled(" ◢ ", Style::default().fg(theme.accent))),
+                    resize,
+                );
+            }
             if inner.width > 0 && inner.height > 0 {
                 let lines = native_chat_lines(record, theme);
                 let rows = wrapped_rows(&lines, inner.width);
@@ -272,12 +312,28 @@ impl HomeView {
                     area: popup,
                     title: Rect::new(popup.x, popup.y, popup.width, 1),
                     close,
+                    resize,
                 });
         }
     }
 
+    pub(in crate::tui) fn native_subagent_edit_mode(&self) -> bool {
+        self.native_subagent_windows.edit_mode
+    }
+
+    pub(in crate::tui) fn native_subagent_toggle_edit_mode(&mut self) -> bool {
+        if self.native_subagent_windows.windows.is_empty() {
+            return false;
+        }
+        self.native_subagent_windows.edit_mode = !self.native_subagent_windows.edit_mode;
+        if !self.native_subagent_windows.edit_mode {
+            self.native_subagent_windows.drag = None;
+        }
+        true
+    }
+
     pub(in crate::tui) fn native_subagent_mouse_down(&mut self, col: u16, row: u16) -> bool {
-        if self.has_non_live_send_overlay() {
+        if self.has_non_live_send_overlay() || !self.native_subagent_windows.edit_mode {
             return false;
         }
         let pos = Position::new(col, row);
@@ -296,16 +352,29 @@ impl HomeView {
                 .windows
                 .retain(|window| window.agent_id != target.agent_id);
             self.native_subagent_windows.drag = None;
+            if self.native_subagent_windows.windows.is_empty() {
+                self.native_subagent_windows.edit_mode = false;
+            }
             return true;
         }
         self.native_subagent_windows.raise(&target.agent_id);
-        if target.title.contains(pos) {
-            self.native_subagent_windows.drag = Some(NativeSubagentDrag {
-                agent_id: target.agent_id,
+        let kind = if target.resize.contains(pos) {
+            NativeSubagentDragKind::Resize {
+                origin_x: target.area.x,
+                origin_y: target.area.y,
+            }
+        } else if target.title.contains(pos) {
+            NativeSubagentDragKind::Move {
                 grab_x: col.saturating_sub(target.area.x),
                 grab_y: row.saturating_sub(target.area.y),
-            });
-        }
+            }
+        } else {
+            return true;
+        };
+        self.native_subagent_windows.drag = Some(NativeSubagentDrag {
+            agent_id: target.agent_id,
+            kind,
+        });
         true
     }
 
@@ -326,10 +395,21 @@ impl HomeView {
             self.native_subagent_windows.drag = None;
             return false;
         };
-        window.position = Some((
-            col.saturating_sub(drag.grab_x),
-            row.saturating_sub(drag.grab_y),
-        ));
+        match drag.kind {
+            NativeSubagentDragKind::Move { grab_x, grab_y } => {
+                window.position = Some((col.saturating_sub(grab_x), row.saturating_sub(grab_y)));
+            }
+            NativeSubagentDragKind::Resize { origin_x, origin_y } => {
+                window.size = Some((
+                    col.saturating_sub(origin_x)
+                        .saturating_add(1)
+                        .max(MIN_WINDOW_WIDTH),
+                    row.saturating_sub(origin_y)
+                        .saturating_add(1)
+                        .max(MIN_WINDOW_HEIGHT),
+                ));
+            }
+        }
         true
     }
 
@@ -416,9 +496,15 @@ fn native_chat_lines(record: &NativeSubagentRecord, theme: &Theme) -> Vec<Line<'
     lines
 }
 
-fn window_rect(viewport: Rect, position: Option<(u16, u16)>, index: usize) -> Rect {
-    let width = WINDOW_WIDTH.min(viewport.width);
-    let height = WINDOW_HEIGHT.min(viewport.height);
+fn window_rect(
+    viewport: Rect,
+    position: Option<(u16, u16)>,
+    size: Option<(u16, u16)>,
+    index: usize,
+) -> Rect {
+    let (requested_width, requested_height) = size.unwrap_or((WINDOW_WIDTH, WINDOW_HEIGHT));
+    let width = requested_width.max(MIN_WINDOW_WIDTH).min(viewport.width);
+    let height = requested_height.max(MIN_WINDOW_HEIGHT).min(viewport.height);
     let cascade = u16::try_from(index).unwrap_or(u16::MAX).saturating_mul(2);
     let default_x = viewport
         .right()

@@ -1755,6 +1755,23 @@ impl HomeView {
         // it would point at unrelated content. Covers the live-send branch below too.
         self.clear_preview_selection();
 
+        // Native sub-agent chats stay passive until explicitly placed in edit mode.
+        // This runs before live-send capture so P remains reachable while keys otherwise
+        // relay to the attached pane.
+        if key.code == KeyCode::Char('P')
+            && !key
+                .modifiers
+                .intersects(KeyModifiers::CONTROL | KeyModifiers::ALT)
+            && !self.has_non_live_send_overlay()
+            && self.native_subagent_toggle_edit_mode()
+        {
+            return None;
+        }
+        if key.code == KeyCode::Esc && self.native_subagent_edit_mode() {
+            self.native_subagent_toggle_edit_mode();
+            return None;
+        }
+
         // Live-send capture normally wins over every other key handler: the home view is
         // a thin relay to the target pane, so dialog hotkeys, search and navigation
         // suspend until Ctrl+q. That holds while dialogs are keyboard-only, since
@@ -4447,8 +4464,8 @@ impl HomeView {
                 if modifiers.contains(crossterm::event::KeyModifiers::SHIFT) {
                     return false; // Shift+press => aoe selection
                 }
-                // A modal over the preview owns the click (dismiss / button).
-                if self.has_non_live_send_overlay() {
+                // A modal or native-chat edit mode over the preview owns the click.
+                if self.has_non_live_send_overlay() || self.native_subagent_edit_mode() {
                     return false;
                 }
                 if !self.hit_preview(col, row) {
