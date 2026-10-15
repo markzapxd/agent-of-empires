@@ -385,6 +385,7 @@ export type AcpEvent =
         tools?: BackgroundAgentTool[];
         last_tool?: string | null;
         last_text?: string | null;
+        messages?: BackgroundAgentMessage[];
         at: string;
       };
     }
@@ -393,6 +394,7 @@ export type AcpEvent =
         agent_id: string;
         status: BackgroundAgentStatus;
         tools?: BackgroundAgentTool[];
+        messages?: BackgroundAgentMessage[];
         result?: string | null;
         warning?: string | null;
         ended_at: string;
@@ -633,6 +635,11 @@ export interface BackgroundAgentTool {
   ok?: boolean | null;
 }
 
+export interface BackgroundAgentMessage {
+  index: number;
+  text: string;
+}
+
 export interface BackgroundAgent {
   agentId: string;
   /** The parent `Task` call that launched this agent. */
@@ -645,6 +652,7 @@ export interface BackgroundAgent {
   endedAt: string | null;
   toolCount: number;
   tools: BackgroundAgentTool[];
+  messages: BackgroundAgentMessage[];
   lastTool: string | null;
   lastText: string | null;
   result: string | null;
@@ -1237,6 +1245,7 @@ export function applyEvent(state: AcpState, frame: AcpFrame): AcpState {
       tools: [],
       lastTool: null,
       lastText: null,
+      messages: [],
       result: null,
       warning: null,
     };
@@ -1265,6 +1274,7 @@ export function applyEvent(state: AcpState, frame: AcpFrame): AcpState {
         endedAt: null,
         lastTool: e.last_tool ?? a.lastTool,
         lastText: e.last_text ?? a.lastText,
+        messages: mergeBackgroundAgentMessages(a.messages, e.messages),
       };
     });
     return next;
@@ -1278,6 +1288,7 @@ export function applyEvent(state: AcpState, frame: AcpFrame): AcpState {
             status: e.status,
             endedAt: e.ended_at,
             tools: e.tools && e.tools.length > 0 ? e.tools : a.tools,
+            messages: mergeBackgroundAgentMessages(a.messages, e.messages),
             result: e.result ?? a.result,
             warning: e.warning ?? a.warning,
           }
@@ -1287,6 +1298,16 @@ export function applyEvent(state: AcpState, frame: AcpFrame): AcpState {
   }
   // Remaining events carry no client control state.
   return next;
+}
+
+function mergeBackgroundAgentMessages(
+  existing: BackgroundAgentMessage[] | undefined,
+  incoming: BackgroundAgentMessage[] | undefined,
+): BackgroundAgentMessage[] {
+  if (!incoming || incoming.length === 0) return existing ?? [];
+  const byIndex = new Map((existing ?? []).map((message) => [message.index, message]));
+  for (const message of incoming) byIndex.set(message.index, message);
+  return [...byIndex.values()].sort((a, b) => a.index - b.index).slice(-100);
 }
 
 /** Fold a self-contained run of frames from an empty state, e.g. an older history page. */

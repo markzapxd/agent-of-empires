@@ -352,13 +352,11 @@ async fn drain_replay_into_socket(
 
 /// State fields large enough, and static enough, to be worth suppressing when they have not
 /// changed since the last frame on this connection.
-const COLD_STATE_FIELDS: [&str; 5] = [
+const COLD_STATE_FIELDS: [&str; 4] = [
     "available_commands",
     "available_modes",
     "config_options",
-    // Not static, but big and bursty.
     "recent_diffs",
-    "background_agents",
 ];
 
 /// Fold a session's stored history into the connection's projections and return the entries

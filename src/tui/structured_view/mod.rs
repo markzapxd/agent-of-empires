@@ -513,6 +513,7 @@ async fn apply_ws_message(
             state.reconcile_selection();
             state.prune_dismissed_notices();
             auto_present_elicitation(state, toast_deadline);
+            state.reconcile_subagent_windows();
             state.reconcile_slash_selection();
             let now_active = state.transcript.turn_active;
             if !was_active && now_active {
@@ -549,6 +550,7 @@ async fn apply_ws_message(
             }
             state.reconcile_selection();
             auto_present_elicitation(state, toast_deadline);
+            state.reconcile_subagent_windows();
             state.reconcile_slash_selection();
             // The optimistic lock no longer reflects anything observable.
             // Resync the queue mirror too.
@@ -850,6 +852,50 @@ async fn handle_terminal_event(
             } else {
                 apply_scroll(state, delta);
             }
+            Ok(false)
+        }
+        Intent::CloseSubagent(agent_id) => {
+            state.close_subagent_window(&agent_id);
+            Ok(false)
+        }
+        Intent::RaiseSubagent(agent_id) => {
+            raise_subagent_window(state, &agent_id);
+            Ok(false)
+        }
+        Intent::StartSubagentDrag {
+            agent_id,
+            grab_x,
+            grab_y,
+        } => {
+            raise_subagent_window(state, &agent_id);
+            state.subagent_drag = Some(state::SubagentDrag {
+                agent_id,
+                grab_x,
+                grab_y,
+            });
+            Ok(false)
+        }
+        Intent::MoveSubagentDrag { column, row } => {
+            if let Some(drag) = state.subagent_drag.clone() {
+                if let Some(window) = state
+                    .subagent_windows
+                    .iter_mut()
+                    .find(|window| window.agent_id == drag.agent_id)
+                {
+                    window.position = Some((
+                        column.saturating_sub(drag.grab_x),
+                        row.saturating_sub(drag.grab_y),
+                    ));
+                }
+            }
+            Ok(false)
+        }
+        Intent::EndSubagentDrag => {
+            state.subagent_drag = None;
+            Ok(false)
+        }
+        Intent::ScrollSubagent { agent_id, delta } => {
+            apply_subagent_scroll(state, &agent_id, delta);
             Ok(false)
         }
         Intent::ResolveApproval(decision) => {
@@ -1601,6 +1647,36 @@ fn accept_mention(state: &mut StructuredViewState) {
     }
     state.mention = None;
     state.dismissed_mention = None;
+}
+
+fn raise_subagent_window(state: &mut StructuredViewState, agent_id: &str) {
+    let Some(index) = state
+        .subagent_windows
+        .iter()
+        .position(|window| window.agent_id == agent_id)
+    else {
+        return;
+    };
+    let window = state.subagent_windows.remove(index);
+    state.subagent_windows.push(window);
+}
+
+fn apply_subagent_scroll(state: &mut StructuredViewState, agent_id: &str, delta: i32) {
+    let Some(window) = state
+        .subagent_windows
+        .iter_mut()
+        .find(|window| window.agent_id == agent_id)
+    else {
+        return;
+    };
+    let max = window.last_scroll_max.get();
+    let current = window.scroll.min(max);
+    if delta < 0 {
+        window.scroll = current.saturating_sub((-delta) as u16);
+    } else {
+        let next = current.saturating_add(delta as u16);
+        window.scroll = if next >= max { u16::MAX } else { next };
+    }
 }
 
 fn apply_scroll(state: &mut StructuredViewState, delta: i32) {

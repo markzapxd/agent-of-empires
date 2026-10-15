@@ -454,6 +454,7 @@ describe("turnActive: daemon truth plus an optimistic overlay (#3417)", () => {
       endedAt,
       toolCount: 0,
       tools: [],
+      messages: [],
       lastTool: null,
       lastText: null,
       result: null,

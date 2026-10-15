@@ -94,6 +94,22 @@ pub enum Intent {
     ChoiceAccept,
     /// Close the choice picker without accepting.
     ChoiceCancel,
+    CloseSubagent(String),
+    RaiseSubagent(String),
+    StartSubagentDrag {
+        agent_id: String,
+        grab_x: u16,
+        grab_y: u16,
+    },
+    MoveSubagentDrag {
+        column: u16,
+        row: u16,
+    },
+    EndSubagentDrag,
+    ScrollSubagent {
+        agent_id: String,
+        delta: i32,
+    },
     /// Exit the structured view; return to the home screen.
     Exit,
     /// Nothing to do (unhandled key).
@@ -195,13 +211,11 @@ const WHEEL_SCROLL_LINES: i32 = 3;
 /// transcript or the composer.
 const PAGE_SCROLL_LINES: i32 = 10;
 
-/// Translate a mouse event into an [`Intent`]. The wheel always scrolls the
-/// focused scrollback, whatever pane the pointer is over. A left click on a
-/// popup row or button fires what its keyboard equivalent would, a click
-/// elsewhere on a popup is swallowed, and any other click moves focus to the
-/// pane under it. `layout` and `targets` come from the last-drawn frame, so
-/// before the first draw clicks are ignored. While the modal plugin pane
-/// overlay is up (#2467) only its own targets respond.
+/// Translate a mouse event into an [`Intent`]. A modal picker or plugin pane
+/// owns input first. Otherwise the topmost sub-agent window claims wheel,
+/// close, raise, and title-bar drag events before the underlying panes. The
+/// layout and targets come from the last-drawn frame, so pre-render clicks are
+/// ignored.
 pub fn dispatch_mouse(
     mouse: &MouseEvent,
     focus: Focus,
@@ -209,17 +223,47 @@ pub fn dispatch_mouse(
     targets: &MouseTargets,
 ) -> Intent {
     let pos = Position::new(mouse.column, mouse.row);
+    if matches!(focus, Focus::Pane) || targets.picker.is_some() {
+        return dispatch_modal_mouse(mouse, targets, pos);
+    }
     match mouse.kind {
-        MouseEventKind::ScrollUp => Intent::Scroll(-WHEEL_SCROLL_LINES),
-        MouseEventKind::ScrollDown => Intent::Scroll(WHEEL_SCROLL_LINES),
-        MouseEventKind::Down(MouseButton::Left) => {
-            if over_picker(targets, pos) {
-                return match picker_row_at(targets, pos) {
-                    Some((PickerKind::Choice, idx)) => Intent::ChoicePick(idx),
-                    Some((PickerKind::Slash, idx)) => Intent::SlashPick(idx),
-                    Some((PickerKind::Mention, idx)) => Intent::MentionPick(idx),
-                    None => Intent::Ignore,
+        MouseEventKind::ScrollUp | MouseEventKind::ScrollDown => {
+            let delta = if matches!(mouse.kind, MouseEventKind::ScrollUp) {
+                -WHEEL_SCROLL_LINES
+            } else {
+                WHEEL_SCROLL_LINES
+            };
+            if let Some(window) = targets
+                .subagent_windows
+                .iter()
+                .rev()
+                .find(|window| window.area.contains(pos))
+            {
+                return Intent::ScrollSubagent {
+                    agent_id: window.agent_id.clone(),
+                    delta,
                 };
+            }
+            Intent::Scroll(delta)
+        }
+        MouseEventKind::Down(MouseButton::Left) => {
+            if let Some(window) = targets
+                .subagent_windows
+                .iter()
+                .rev()
+                .find(|window| window.area.contains(pos))
+            {
+                if window.close.contains(pos) {
+                    return Intent::CloseSubagent(window.agent_id.clone());
+                }
+                if window.title.contains(pos) {
+                    return Intent::StartSubagentDrag {
+                        agent_id: window.agent_id.clone(),
+                        grab_x: pos.x.saturating_sub(window.area.x),
+                        grab_y: pos.y.saturating_sub(window.area.y),
+                    };
+                }
+                return Intent::RaiseSubagent(window.agent_id.clone());
             }
             if let Some((_, intent)) = targets.buttons.iter().find(|(r, _)| r.contains(pos)) {
                 return intent.clone();
@@ -233,6 +277,33 @@ pub fn dispatch_mouse(
                 }
                 _ => Intent::Ignore,
             }
+        }
+        MouseEventKind::Drag(MouseButton::Left) => Intent::MoveSubagentDrag {
+            column: mouse.column,
+            row: mouse.row,
+        },
+        MouseEventKind::Up(MouseButton::Left) => Intent::EndSubagentDrag,
+        _ => Intent::Ignore,
+    }
+}
+fn dispatch_modal_mouse(mouse: &MouseEvent, targets: &MouseTargets, pos: Position) -> Intent {
+    match mouse.kind {
+        MouseEventKind::ScrollUp => Intent::Scroll(-WHEEL_SCROLL_LINES),
+        MouseEventKind::ScrollDown => Intent::Scroll(WHEEL_SCROLL_LINES),
+        MouseEventKind::Down(MouseButton::Left) => {
+            if over_picker(targets, pos) {
+                return match picker_row_at(targets, pos) {
+                    Some((PickerKind::Choice, idx)) => Intent::ChoicePick(idx),
+                    Some((PickerKind::Slash, idx)) => Intent::SlashPick(idx),
+                    Some((PickerKind::Mention, idx)) => Intent::MentionPick(idx),
+                    None => Intent::Ignore,
+                };
+            }
+            targets
+                .buttons
+                .iter()
+                .find(|(rect, _)| rect.contains(pos))
+                .map_or(Intent::Ignore, |(_, intent)| intent.clone())
         }
         _ => Intent::Ignore,
     }
@@ -962,13 +1033,76 @@ mod tests {
     }
 
     #[test]
+    fn subagent_window_claims_scroll_close_and_drag_events() {
+        use super::super::state::SubagentWindowTarget;
+
+        let mut targets = MouseTargets::default();
+        targets.subagent_windows.push(SubagentWindowTarget {
+            agent_id: "a1".into(),
+            area: Rect::new(20, 3, 40, 12),
+            title: Rect::new(20, 3, 40, 1),
+            close: Rect::new(57, 3, 3, 1),
+        });
+        let cases = [
+            (
+                mouse(MouseEventKind::ScrollUp, 30, 8),
+                Intent::ScrollSubagent {
+                    agent_id: "a1".into(),
+                    delta: -WHEEL_SCROLL_LINES,
+                },
+            ),
+            (
+                mouse(MouseEventKind::Down(MouseButton::Left), 58, 3),
+                Intent::CloseSubagent("a1".into()),
+            ),
+            (
+                mouse(MouseEventKind::Down(MouseButton::Left), 25, 3),
+                Intent::StartSubagentDrag {
+                    agent_id: "a1".into(),
+                    grab_x: 5,
+                    grab_y: 0,
+                },
+            ),
+            (
+                mouse(MouseEventKind::Drag(MouseButton::Left), 9, 10),
+                Intent::MoveSubagentDrag { column: 9, row: 10 },
+            ),
+            (
+                mouse(MouseEventKind::Up(MouseButton::Left), 9, 10),
+                Intent::EndSubagentDrag,
+            ),
+        ];
+        for (event, want) in cases {
+            assert_eq!(
+                dispatch_mouse(&event, Focus::Transcript, Some(&layout()), &targets),
+                want
+            );
+        }
+
+        targets.picker = Some(super::super::state::PickerTarget {
+            kind: PickerKind::Choice,
+            area: Rect::new(20, 3, 40, 12),
+            rows: Rect::new(22, 4, 36, 3),
+            first: 0,
+        });
+        assert_eq!(
+            dispatch_mouse(
+                &mouse(MouseEventKind::Down(MouseButton::Left), 58, 3),
+                Focus::Composer,
+                Some(&layout()),
+                &targets,
+            ),
+            Intent::Ignore,
+            "a modal picker above the chat owns the covered title bar"
+        );
+    }
+
+    #[test]
     fn non_left_mouse_events_are_ignored() {
         let l = layout();
         for kind in [
             MouseEventKind::Down(MouseButton::Right),
             MouseEventKind::Down(MouseButton::Middle),
-            MouseEventKind::Up(MouseButton::Left),
-            MouseEventKind::Drag(MouseButton::Left),
             MouseEventKind::Moved,
         ] {
             assert_eq!(
@@ -1002,6 +1136,7 @@ mod tests {
         let targets = |kind: Option<PickerKind>| MouseTargets {
             picker: kind.map(picker),
             buttons: vec![(Rect::new(50, 17, 6, 1), deny.clone())],
+            subagent_windows: vec![],
         };
         use Focus::{Composer, Pane, Transcript};
         let (choice, slash, mention) = (

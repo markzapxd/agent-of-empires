@@ -99,6 +99,14 @@ pub struct StructuredViewState {
     /// Clickable popup rows and buttons painted by the most recent draw.
     /// Interior-mutable because the render borrows the state immutably.
     pub mouse_targets: std::cell::RefCell<MouseTargets>,
+    /// Floating chats opened for async sub-agents, oldest below newest.
+    pub subagent_windows: Vec<SubagentWindow>,
+    /// Pointer capture for a title-bar drag. Kept after the pointer leaves the
+    /// window so the matching release always terminates the gesture.
+    pub subagent_drag: Option<SubagentDrag>,
+    /// Agent ids observed from the daemon. Closing a window does not let a later
+    /// progress snapshot reopen it; only a genuinely new launch does.
+    pub known_background_agents: HashSet<String>,
     /// The button under the pointer. Visual only; never moves keyboard focus.
     pub hover: HoverState,
     /// Floating single-choice picker: the permission-mode picker (Shift+Tab), or
@@ -193,6 +201,14 @@ pub struct PickerTarget {
     pub rows: Rect,
     pub first: usize,
 }
+/// Last-drawn hit geometry for one floating sub-agent chat.
+#[derive(Debug, Clone)]
+pub struct SubagentWindowTarget {
+    pub agent_id: String,
+    pub area: Rect,
+    pub title: Rect,
+    pub close: Rect,
+}
 
 /// Mouse targets captured during render, topmost first: the floating picker,
 /// then buttons, each firing the intent of its keyboard equivalent.
@@ -200,6 +216,23 @@ pub struct PickerTarget {
 pub struct MouseTargets {
     pub picker: Option<PickerTarget>,
     pub buttons: Vec<(Rect, Intent)>,
+    pub subagent_windows: Vec<SubagentWindowTarget>,
+}
+
+/// One floating, read-only chat. `position` is the requested screen-space
+/// origin; render clamps it into the current viewport after every resize.
+pub struct SubagentWindow {
+    pub agent_id: String,
+    pub position: Option<(u16, u16)>,
+    pub scroll: u16,
+    pub last_scroll_max: std::cell::Cell<u16>,
+}
+
+#[derive(Debug, Clone)]
+pub struct SubagentDrag {
+    pub agent_id: String,
+    pub grab_x: u16,
+    pub grab_y: u16,
 }
 
 /// Tracks which plugin notifications have been shown and buffers any awaiting a
@@ -317,12 +350,61 @@ impl StructuredViewState {
             last_pane_scroll_max: std::cell::Cell::new(0),
             layout: None,
             mouse_targets: Default::default(),
+            subagent_windows: Vec::new(),
+            subagent_drag: None,
+            known_background_agents: HashSet::new(),
             hover: HoverState::default(),
             choice: None,
             auto_presented_elicitation: None,
             last_scroll_max: std::cell::Cell::new(0),
             compaction_reminder_percent: None,
         }
+    }
+
+    /// Auto-present a chat for each newly observed async sub-agent. Existing
+    /// records hydrate the view the same way as live launches; a user-closed id
+    /// stays closed because it remains in `known_background_agents`.
+    pub fn reconcile_subagent_windows(&mut self) {
+        for agent in &self.transcript.background_agents {
+            if self.known_background_agents.insert(agent.agent_id.clone()) {
+                self.subagent_windows.push(SubagentWindow {
+                    agent_id: agent.agent_id.clone(),
+                    position: None,
+                    scroll: u16::MAX,
+                    last_scroll_max: std::cell::Cell::new(0),
+                });
+            }
+        }
+        self.subagent_windows.retain(|window| {
+            self.transcript
+                .background_agents
+                .iter()
+                .any(|agent| agent.agent_id == window.agent_id)
+        });
+        if self.subagent_drag.as_ref().is_some_and(|drag| {
+            !self
+                .subagent_windows
+                .iter()
+                .any(|window| window.agent_id == drag.agent_id)
+        }) {
+            self.subagent_drag = None;
+        }
+    }
+
+    pub fn close_subagent_window(&mut self, agent_id: &str) {
+        self.subagent_windows
+            .retain(|window| window.agent_id != agent_id);
+        if self
+            .subagent_drag
+            .as_ref()
+            .is_some_and(|drag| drag.agent_id == agent_id)
+        {
+            self.subagent_drag = None;
+        }
+    }
+
+    pub fn is_subagent_dragging(&self) -> bool {
+        self.subagent_drag.is_some()
     }
 
     /// Drop the plugin pane overlay if up, returning focus to the transcript
@@ -628,6 +710,45 @@ mod tests {
         assert!(!state.transcript.turn_active);
         assert!(!state.in_flight);
         assert!(state.is_busy());
+    }
+
+    #[test]
+    fn newly_observed_subagents_open_once_and_closed_windows_stay_closed() {
+        use crate::acp::state::{BackgroundAgentRecord, BackgroundAgentStatus};
+
+        let mut state = test_state(None);
+        state
+            .transcript
+            .background_agents
+            .push(BackgroundAgentRecord {
+                agent_id: "a1".into(),
+                tool_call_id: "tc1".into(),
+                description: "map backend".into(),
+                prompt: "do it".into(),
+                model: "claude".into(),
+                status: BackgroundAgentStatus::Running,
+                started_at: chrono::Utc::now(),
+                ended_at: None,
+                tool_count: 0,
+                tools: vec![],
+                last_tool: None,
+                last_text: None,
+                messages: vec![],
+                result: None,
+                warning: None,
+            });
+        state.reconcile_subagent_windows();
+        assert_eq!(state.subagent_windows.len(), 1);
+
+        state.close_subagent_window("a1");
+        state.reconcile_subagent_windows();
+        assert!(state.subagent_windows.is_empty());
+
+        let mut second = state.transcript.background_agents[0].clone();
+        second.agent_id = "a2".into();
+        state.transcript.background_agents.push(second);
+        state.reconcile_subagent_windows();
+        assert_eq!(state.subagent_windows[0].agent_id, "a2");
     }
 
     fn composer_text(state: &StructuredViewState) -> String {

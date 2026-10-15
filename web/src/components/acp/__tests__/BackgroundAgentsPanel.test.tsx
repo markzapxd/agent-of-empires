@@ -25,6 +25,7 @@ function agent(over: Partial<BackgroundAgent> = {}): BackgroundAgent {
     endedAt: null,
     toolCount: 3,
     tools: [],
+    messages: [],
     lastTool: "Read",
     lastText: "scanning files",
     result: null,

@@ -18,10 +18,14 @@ use super::input::{Focus, Intent};
 use super::reducer::{
     AcpTranscript, NoteKind, PendingApproval, ToolCallRow, ToolCompletion, ToolOutcome,
 };
-use super::state::{FileIndex, PickerKind, PickerTarget, StructuredViewState, ViewLayout};
+use super::state::{
+    FileIndex, PickerKind, PickerTarget, StructuredViewState, SubagentWindowTarget, ViewLayout,
+};
 use crate::acp::approvals::{tool_target, ToolTarget, CMD_KEYS, PATH_KEYS};
 use crate::acp::session_paths::{relative_display_path, SessionPathRoots};
-use crate::acp::state::{AuthStatusKind, SessionUsage, ToolOutputBlock};
+use crate::acp::state::{
+    AuthStatusKind, BackgroundAgentRecord, BackgroundAgentStatus, SessionUsage, ToolOutputBlock,
+};
 use crate::acp::transcript::{TranscriptRow, TranscriptRowKind};
 use crate::tui::components::hover::paint_hover_bg;
 use crate::tui::plugin_ui;
@@ -37,7 +41,7 @@ pub fn render(
     active: bool,
 ) -> TranscriptGeometry {
     let layout = compute_layout(area, state);
-    // Keep the previous window start so hover cannot scroll rows away.
+    // Preserve picker scroll state while clearing last frame's hit targets.
     let prev_picker = state.mouse_targets.take().picker;
 
     let geometry = render_transcript(frame, layout.transcript, theme, state, active);
@@ -61,6 +65,7 @@ pub fn render(
             .filter(|p: &PickerTarget| p.kind == kind)
             .map_or(0, |p| p.first)
     };
+    render_subagent_windows(frame, area, theme, state);
     if state.choice.is_some() {
         let first = prev_first(PickerKind::Choice);
         render_choice_picker(frame, layout.composer, theme, state, first);
@@ -77,6 +82,148 @@ pub fn render(
         render_pane_panel(frame, area, theme, state);
     }
     geometry
+}
+
+const SUBAGENT_WINDOW_WIDTH: u16 = 62;
+const SUBAGENT_WINDOW_HEIGHT: u16 = 18;
+
+fn render_subagent_windows(
+    frame: &mut Frame,
+    viewport: Rect,
+    theme: &Theme,
+    state: &StructuredViewState,
+) {
+    for (index, window) in state.subagent_windows.iter().enumerate() {
+        let Some(agent) = state
+            .transcript
+            .background_agents
+            .iter()
+            .find(|agent| agent.agent_id == window.agent_id)
+        else {
+            continue;
+        };
+        let area = subagent_window_rect(viewport, window.position, index);
+        if area.width < 8 || area.height < 4 {
+            continue;
+        }
+        let status = background_status_label(agent.status);
+        let title = if agent.description.trim().is_empty() {
+            format!(" Sub-agent · {status} ")
+        } else {
+            format!(" {} · {status} ", agent.description.trim())
+        };
+        let block = Block::default()
+            .borders(Borders::ALL)
+            .border_type(BorderType::Rounded)
+            .padding(Padding::horizontal(1))
+            .title(title)
+            .border_style(Style::default().fg(theme.title));
+        let inner = block.inner(area);
+        frame.render_widget(Clear, area);
+        frame.render_widget(block, area);
+
+        let close = Rect::new(area.right().saturating_sub(4), area.y, 3, 1);
+        frame.render_widget(
+            Paragraph::new(Span::styled(" × ", Style::default().fg(theme.dimmed))),
+            close,
+        );
+        if inner.width > 0 && inner.height > 0 {
+            let lines = subagent_chat_lines(agent, theme);
+            let rows = wrapped_rows(&lines, inner.width);
+            let max_scroll = rows.saturating_sub(inner.height);
+            window.last_scroll_max.set(max_scroll);
+            let offset = window.scroll.min(max_scroll);
+            frame.render_widget(
+                Paragraph::new(lines)
+                    .wrap(ratatui::widgets::Wrap { trim: false })
+                    .scroll((offset, 0)),
+                inner,
+            );
+        }
+        state
+            .mouse_targets
+            .borrow_mut()
+            .subagent_windows
+            .push(SubagentWindowTarget {
+                agent_id: window.agent_id.clone(),
+                area,
+                title: Rect::new(area.x, area.y, area.width, 1),
+                close,
+            });
+    }
+}
+
+fn subagent_window_rect(viewport: Rect, position: Option<(u16, u16)>, index: usize) -> Rect {
+    let width = SUBAGENT_WINDOW_WIDTH.min(viewport.width);
+    let height = SUBAGENT_WINDOW_HEIGHT.min(viewport.height);
+    let cascade = u16::try_from(index).unwrap_or(u16::MAX).saturating_mul(2);
+    let default_x = viewport
+        .right()
+        .saturating_sub(width)
+        .saturating_sub(cascade);
+    let default_y = viewport.y.saturating_add(1).saturating_add(cascade);
+    let (x, y) = position.unwrap_or((default_x, default_y));
+    Rect::new(
+        x.clamp(viewport.x, viewport.right().saturating_sub(width)),
+        y.clamp(viewport.y, viewport.bottom().saturating_sub(height)),
+        width,
+        height,
+    )
+}
+
+fn subagent_chat_lines(agent: &BackgroundAgentRecord, theme: &Theme) -> Vec<Line<'static>> {
+    let mut lines = vec![
+        Line::from(vec![
+            Span::styled("prompt  ", Style::default().fg(theme.dimmed)),
+            Span::styled(agent.prompt.clone(), Style::default().fg(theme.text)),
+        ]),
+        Line::default(),
+    ];
+    if agent.messages.is_empty() {
+        let activity = agent
+            .last_tool
+            .as_deref()
+            .map(|tool| format!("running {tool}…"))
+            .unwrap_or_else(|| "waiting for the first reply…".to_string());
+        lines.push(Line::from(Span::styled(
+            activity,
+            Style::default().fg(theme.dimmed),
+        )));
+    } else {
+        for message in &agent.messages {
+            lines.extend(agent_message_lines(&message.text, theme));
+            lines.push(Line::default());
+        }
+    }
+    if let Some(warning) = &agent.warning {
+        lines.push(Line::from(Span::styled(
+            warning.clone(),
+            Style::default().fg(theme.error),
+        )));
+    }
+    lines
+}
+
+fn wrapped_rows(lines: &[Line<'_>], width: u16) -> u16 {
+    let width = usize::from(width.max(1));
+    lines
+        .iter()
+        .map(|line| {
+            let cells = line.width();
+            cells.max(1).div_ceil(width)
+        })
+        .sum::<usize>()
+        .min(usize::from(u16::MAX)) as u16
+}
+
+fn background_status_label(status: BackgroundAgentStatus) -> &'static str {
+    match status {
+        BackgroundAgentStatus::Running => "running",
+        BackgroundAgentStatus::Stalled => "stalled",
+        BackgroundAgentStatus::Completed => "done",
+        BackgroundAgentStatus::Detached => "detached",
+        BackgroundAgentStatus::Error => "error",
+    }
 }
 
 /// Permission mode / elicitation answer / plugin-link picker.
@@ -2649,6 +2796,56 @@ mod tests {
         state.transcript.background_agent_active = true;
         let dump = render_dump(&state, 80, 24);
         assert!(dump.contains("working"), "{dump}");
+    }
+
+    #[test]
+    fn subagent_chat_renders_full_messages_and_stays_in_viewport() {
+        use crate::acp::state::{
+            BackgroundAgentMessage, BackgroundAgentRecord, BackgroundAgentStatus,
+        };
+        use crate::tui::structured_view::state::SubagentWindow;
+
+        let mut state = test_state();
+        state
+            .transcript
+            .background_agents
+            .push(BackgroundAgentRecord {
+                agent_id: "a1".into(),
+                tool_call_id: "tc1".into(),
+                description: "Map backend".into(),
+                prompt: "Inspect every path".into(),
+                model: "claude".into(),
+                status: BackgroundAgentStatus::Running,
+                started_at: chrono::Utc::now(),
+                ended_at: None,
+                tool_count: 0,
+                tools: vec![],
+                last_tool: None,
+                last_text: Some("compat preview".into()),
+                messages: vec![BackgroundAgentMessage {
+                    index: 0,
+                    text: "Full streamed reply".into(),
+                }],
+                result: None,
+                warning: None,
+            });
+        state.subagent_windows.push(SubagentWindow {
+            agent_id: "a1".into(),
+            position: Some((u16::MAX, u16::MAX)),
+            scroll: u16::MAX,
+            last_scroll_max: std::cell::Cell::new(0),
+        });
+
+        let dump = render_dump(&state, 80, 24);
+        for text in [
+            "Map backend · running",
+            "Inspect every path",
+            "Full streamed reply",
+        ] {
+            assert!(dump.contains(text), "{text}: {dump}");
+        }
+        let target = state.mouse_targets.borrow().subagent_windows[0].clone();
+        assert!(target.area.right() <= 80 && target.area.bottom() <= 24);
     }
 
     #[test]

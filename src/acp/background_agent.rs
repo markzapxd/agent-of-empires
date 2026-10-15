@@ -21,8 +21,10 @@ const ABORT_AFTER: Duration = Duration::from_secs(300);
 /// Give the transcript file this long to appear after launch.
 const WAIT_FILE_FOR: Duration = Duration::from_secs(30);
 const CONTAINER_EXEC_TIMEOUT: Duration = Duration::from_secs(10);
-/// Cap on the assistant-text preview carried in progress/result.
+/// Cap on the compatibility preview carried in `last_text` / `result`.
 const TEXT_PREVIEW_CHARS: usize = 240;
+/// Bound retained chat payloads without truncating individual messages.
+const MAX_MESSAGES: usize = 100;
 
 /// Where a sub-agent transcript lives, and how to read it.
 #[derive(Clone)]
@@ -168,6 +170,7 @@ pub fn spawn_tailer(
                     agent_id,
                     BackgroundAgentStatus::Error,
                     Vec::new(),
+                    Vec::new(),
                     None,
                     Some("no transcript path reported for this sub-agent".into()),
                 ))
@@ -206,6 +209,8 @@ struct Snapshot {
     tools: Vec<ToolEntry>,
     last_tool: Option<String>,
     last_text: Option<String>,
+    messages: std::collections::VecDeque<(u32, String)>,
+    next_message_index: u32,
     /// Final assistant text seen alongside an `end_turn` stop reason.
     result: Option<String>,
     /// Set once a terminal `end_turn` assistant message is parsed.
@@ -237,6 +242,7 @@ async fn run_tailer(
                 .send(completed(
                     agent_id,
                     status,
+                    Vec::new(),
                     Vec::new(),
                     None,
                     Some(warning.into()),
@@ -274,6 +280,7 @@ async fn run_tailer(
                     agent_id,
                     BackgroundAgentStatus::Completed,
                     snapshot_tools(&snap),
+                    snapshot_messages(&snap),
                     snap.result.clone(),
                     warning,
                 ))
@@ -290,6 +297,7 @@ async fn run_tailer(
                     agent_id,
                     status,
                     snapshot_tools(&snap),
+                    snapshot_messages(&snap),
                     result,
                     warning,
                 ))
@@ -380,8 +388,15 @@ fn fold_line(line: &str, snap: &mut Snapshot) {
                     Some("tool_use") => fold_tool_use(block, snap),
                     Some("text") => {
                         if let Some(text) = block.get("text").and_then(|t| t.as_str()) {
-                            let preview = preview(text);
-                            if !preview.is_empty() {
+                            let text = text.trim();
+                            if !text.is_empty() {
+                                if snap.messages.len() == MAX_MESSAGES {
+                                    snap.messages.pop_front();
+                                }
+                                let index = snap.next_message_index;
+                                snap.next_message_index = snap.next_message_index.saturating_add(1);
+                                snap.messages.push_back((index, text.to_string()));
+                                let preview = preview(text);
                                 snap.last_text = Some(preview.clone());
                                 snap.last_was_text = true;
                                 if end_turn {
@@ -538,14 +553,26 @@ fn progress(agent_id: String, status: BackgroundAgentStatus, snap: &Snapshot) ->
         tools: snapshot_tools(snap),
         last_tool: snap.last_tool.clone(),
         last_text: snap.last_text.clone(),
+        messages: snapshot_messages(snap),
         at: Utc::now(),
     }
+}
+
+fn snapshot_messages(snap: &Snapshot) -> Vec<crate::acp::state::BackgroundAgentMessage> {
+    snap.messages
+        .iter()
+        .map(|(index, text)| crate::acp::state::BackgroundAgentMessage {
+            index: *index,
+            text: text.clone(),
+        })
+        .collect()
 }
 
 fn completed(
     agent_id: String,
     status: BackgroundAgentStatus,
     tools: Vec<crate::acp::state::BackgroundAgentTool>,
+    messages: Vec<crate::acp::state::BackgroundAgentMessage>,
     result: Option<String>,
     warning: Option<String>,
 ) -> Event {
@@ -553,6 +580,7 @@ fn completed(
         agent_id,
         status,
         tools,
+        messages,
         result,
         warning,
         ended_at: Utc::now(),
@@ -745,5 +773,24 @@ mod tests {
 
         let long = preview(&"x".repeat(TEXT_PREVIEW_CHARS + 50));
         assert!(long.ends_with('…') && long.chars().count() <= TEXT_PREVIEW_CHARS + 1);
+    }
+
+    #[test]
+    fn assistant_messages_keep_full_text_in_order() {
+        let long = "x".repeat(TEXT_PREVIEW_CHARS + 50);
+        let first = format!(
+            r#"{{"type":"assistant","message":{{"content":[{{"type":"text","text":"{long}"}}]}}}}"#
+        );
+        let second = r#"{"type":"assistant","message":{"stop_reason":"end_turn","content":[{"type":"text","text":"final answer"}]}}"#;
+        let snap = folded(&[&first, second]);
+        assert_eq!(
+            snap.messages,
+            [(0, long.clone()), (1, "final answer".to_string())]
+        );
+        assert_eq!(snap.last_text.as_deref(), Some("final answer"));
+        assert_eq!(
+            snapshot_messages(&snap)[0].text.chars().count(),
+            TEXT_PREVIEW_CHARS + 50
+        );
     }
 }

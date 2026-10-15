@@ -276,9 +276,20 @@ describe("applyEvent / background agents", () => {
     expect(agent(launched)).toEqual([
       expect.objectContaining({ status: "running", toolCallId: "task-1", endedAt: null }),
     ]);
-    const running = progress("running", 4, "2026-06-27T00:00:05Z", { last_tool: "Read", last_text: "scanning" });
+    const running = progress("running", 4, "2026-06-27T00:00:05Z", {
+      last_tool: "Read",
+      last_text: "scanning",
+      messages: [{ index: 0, text: "first" }],
+    });
+    const next = progress("running", 4, "2026-06-27T00:00:06Z", {
+      messages: [{ index: 1, text: "second" }],
+    });
     expect(agent(launched, running)[0]).toMatchObject({ toolCount: 4, lastTool: "Read" });
-    expect(agent(launched, running, completed)[0]).toMatchObject({ status: "completed", result: "done" });
+    expect(agent(launched, running, next)[0]?.messages).toEqual([
+      { index: 0, text: "first" },
+      { index: 1, text: "second" },
+    ]);
+    expect(agent(launched, running, next, completed)[0]).toMatchObject({ status: "completed", result: "done" });
   });
 
   it("leaves endedAt null on a stall, so the elapsed timer keeps ticking (#4001)", () => {

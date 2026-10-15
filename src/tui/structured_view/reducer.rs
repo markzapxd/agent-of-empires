@@ -29,8 +29,8 @@
 
 use crate::acp::elicitations::ElicitationQuestion;
 use crate::acp::state::{
-    AcpState, AuthStatus, AvailableCommand, DiffPreview, ModeInfo, PlanStepStatus, SessionNotice,
-    SessionUsage,
+    AcpState, AuthStatus, AvailableCommand, BackgroundAgentRecord, DiffPreview, ModeInfo,
+    PlanStepStatus, SessionNotice, SessionUsage,
 };
 use crate::acp::transcript::{
     patch_transcript_row, upsert_transcript_row, TranscriptDelta, TranscriptRow, TranscriptRowKind,
@@ -87,6 +87,9 @@ pub struct AcpTranscript {
     /// Esc-to-cancel reads `turn_active` (via `agent_busy` in mod.rs), never
     /// this field.
     pub background_agent_active: bool,
+    /// Async sub-agents launched in this session, oldest first. The daemon
+    /// owns the records; the native TUI retains them for the floating chat.
+    pub background_agents: Vec<BackgroundAgentRecord>,
     /// Whether the agent accepts `_session/steering`. When true the composer
     /// sends a mid-turn prompt straight through instead of parking it: the
     /// daemon injects it into the running turn. Re-derived as `false` on a
@@ -225,6 +228,7 @@ impl AcpTranscript {
             compacting: false,
             turn_active: false,
             background_agent_active: false,
+            background_agents: Vec::new(),
             usage: None,
             current_plan: Vec::new(),
             lagged: false,
@@ -311,7 +315,6 @@ impl AcpTranscript {
         }
         self.last_seq = seq;
 
-        self.background_agent_active = state.has_active_background_agent();
         self.agent_name = Some(state.agent.0);
         self.turn_active = state.turn_active;
         self.steering = state.steering;
@@ -325,7 +328,17 @@ impl AcpTranscript {
         if !holds("available_modes") {
             self.available_modes = state.available_modes;
         }
+        // Kept behind `holds` for mixed-version daemons that still suppress
+        // unchanged snapshots; current daemons send it after every update so
+        // chat messages stream live.
+        if !holds("background_agents") {
+            self.background_agents = state.background_agents;
+        }
         self.session_notices = state.session_notices;
+        self.background_agent_active = self
+            .background_agents
+            .iter()
+            .any(|agent| agent.ended_at.is_none());
         self.current_mode = state.current_mode_id;
         self.auth_status = state.auth_status;
         self.current_plan = state
@@ -712,6 +725,26 @@ mod tests {
         assert!(!state.turn_active, "fixture invariant: no main turn opened");
         t.apply_reduced_state(1, state, &[]);
         assert!(!t.turn_active);
+        assert!(t.background_agent_active);
+    }
+
+    #[test]
+    fn reduced_state_retains_background_records_across_cold_omission() {
+        let mut t = AcpTranscript::new("s-1");
+        let state = reduced(&[Event::BackgroundAgentLaunched {
+            agent_id: "a1".into(),
+            tool_call_id: "tc1".into(),
+            description: "map backend".into(),
+            prompt: "do it".into(),
+            model: "claude".into(),
+            output_file: "/tmp/a1.jsonl".into(),
+            started_at: chrono::Utc::now(),
+        }]);
+        t.apply_reduced_state(1, state, &[]);
+        assert_eq!(t.background_agents[0].agent_id, "a1");
+
+        t.apply_reduced_state(2, reduced(&[]), &["background_agents".into()]);
+        assert_eq!(t.background_agents[0].agent_id, "a1");
         assert!(t.background_agent_active);
     }
 

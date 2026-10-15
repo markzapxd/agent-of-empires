@@ -372,6 +372,13 @@ pub struct BackgroundAgentTool {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub ok: Option<bool>,
 }
+/// One assistant message parsed from a background sub-agent transcript.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BackgroundAgentMessage {
+    #[serde(default)]
+    pub index: u32,
+    pub text: String,
+}
 
 /// One async background sub-agent, built up from `BackgroundAgent*` events.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -395,6 +402,9 @@ pub struct BackgroundAgentRecord {
     /// Preview of the most recent assistant text.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub last_text: Option<String>,
+    /// Assistant messages in transcript order, bounded by the tailer.
+    #[serde(default)]
+    pub messages: Vec<BackgroundAgentMessage>,
     /// The terminal assistant message.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub result: Option<String>,
@@ -659,6 +669,8 @@ pub enum Event {
         last_tool: Option<String>,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         last_text: Option<String>,
+        #[serde(default)]
+        messages: Vec<BackgroundAgentMessage>,
         at: DateTime<Utc>,
     },
     /// Terminal state for a background sub-agent.
@@ -667,6 +679,8 @@ pub enum Event {
         status: BackgroundAgentStatus,
         #[serde(default)]
         tools: Vec<BackgroundAgentTool>,
+        #[serde(default)]
+        messages: Vec<BackgroundAgentMessage>,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         result: Option<String>,
         #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -1007,6 +1021,7 @@ impl AcpState {
                 tools: Vec::new(),
                 last_tool: None,
                 last_text: None,
+                messages: Vec::new(),
                 result: None,
                 warning: None,
             }),
@@ -1017,6 +1032,7 @@ impl AcpState {
                 tools,
                 last_tool,
                 last_text,
+                messages,
                 ..
             } => {
                 // A terminal record never reopens. `ended_at` is part of the
@@ -1030,6 +1046,7 @@ impl AcpState {
                     a.tool_count = tool_count;
                     replace_if_some(&mut a.last_tool, last_tool);
                     replace_if_some(&mut a.last_text, last_text);
+                    merge_background_messages(&mut a.messages, messages);
                     if !tools.is_empty() {
                         a.tools = tools;
                     }
@@ -1039,6 +1056,7 @@ impl AcpState {
                 agent_id,
                 status,
                 tools,
+                messages,
                 result,
                 warning,
                 ended_at,
@@ -1048,6 +1066,15 @@ impl AcpState {
                     a.ended_at = Some(ended_at);
                     replace_if_some(&mut a.result, result);
                     replace_if_some(&mut a.warning, warning);
+                    merge_background_messages(&mut a.messages, messages);
+                    if a.messages.is_empty() {
+                        if let Some(result) = &a.result {
+                            a.messages.push(BackgroundAgentMessage {
+                                index: 0,
+                                text: result.clone(),
+                            });
+                        }
+                    }
                     if !tools.is_empty() {
                         a.tools = tools;
                     }
@@ -1159,6 +1186,23 @@ impl AcpState {
 fn replace_if_some<T>(slot: &mut Option<T>, value: Option<T>) {
     if value.is_some() {
         *slot = value;
+    }
+}
+
+fn merge_background_messages(
+    existing: &mut Vec<BackgroundAgentMessage>,
+    incoming: Vec<BackgroundAgentMessage>,
+) {
+    const MAX_MESSAGES: usize = 100;
+    for message in incoming {
+        match existing.iter_mut().find(|old| old.index == message.index) {
+            Some(old) => *old = message,
+            None => existing.push(message),
+        }
+    }
+    existing.sort_by_key(|message| message.index);
+    if existing.len() > MAX_MESSAGES {
+        existing.drain(..existing.len() - MAX_MESSAGES);
     }
 }
 
@@ -1684,6 +1728,10 @@ mod tests {
             tools,
             last_tool: Some("Read".into()),
             last_text: None,
+            messages: vec![BackgroundAgentMessage {
+                index: 0,
+                text: "scanning files".into(),
+            }],
             at: Utc::now(),
         };
         let mut s = applied([
@@ -1713,11 +1761,13 @@ mod tests {
         assert_eq!(agent.tool_call_id, "tc1");
         assert_eq!(agent.tools[0].name, "Read");
         assert_eq!(agent.last_tool.as_deref(), Some("Read"));
+        assert_eq!(agent.messages[0].text, "scanning files");
 
         s.apply_event(Event::BackgroundAgentCompleted {
             agent_id: "a1".into(),
             status: BackgroundAgentStatus::Completed,
             tools: vec![],
+            messages: vec![],
             result: Some("done".into()),
             warning: None,
             ended_at: Utc::now(),
@@ -1732,6 +1782,7 @@ mod tests {
         );
         assert_eq!((agent.tool_count, agent.tools.len()), (3, 1));
         assert_eq!(agent.result.as_deref(), Some("done"));
+        assert_eq!(agent.messages[0].text, "scanning files");
 
         // A stalled Progress sets no `ended_at`, so the next one resumes it.
         let s = applied([launched(), bg_progress(BackgroundAgentStatus::Stalled, 4)]);
@@ -1750,6 +1801,29 @@ mod tests {
         assert_eq!(
             s.background_agents[0].status,
             BackgroundAgentStatus::Running
+        );
+
+        let message = |index, text: &str| Event::BackgroundAgentProgress {
+            agent_id: "a1".into(),
+            status: BackgroundAgentStatus::Running,
+            tool_count: 0,
+            tools: vec![],
+            last_tool: None,
+            last_text: None,
+            messages: vec![BackgroundAgentMessage {
+                index,
+                text: text.into(),
+            }],
+            at: Utc::now(),
+        };
+        let s = applied([launched(), message(2, "third"), message(1, "second")]);
+        assert_eq!(
+            s.background_agents[0]
+                .messages
+                .iter()
+                .map(|message| message.text.as_str())
+                .collect::<Vec<_>>(),
+            ["second", "third"]
         );
     }
 
@@ -1773,6 +1847,7 @@ mod tests {
             tools: vec![],
             last_tool: None,
             last_text: None,
+            messages: vec![],
             at: Utc::now(),
         }
     }
@@ -1782,6 +1857,7 @@ mod tests {
             agent_id: "a1".into(),
             status,
             tools: vec![],
+            messages: vec![],
             result: None,
             warning: None,
             ended_at: Utc::now(),

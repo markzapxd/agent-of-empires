@@ -1577,6 +1577,7 @@ mod tests {
                 tools: Vec::new(),
                 last_tool: None,
                 last_text: None,
+                messages: Vec::new(),
                 at: chrono::Utc::now(),
             },
         );
@@ -1685,6 +1686,7 @@ mod tests {
                 tools: Vec::new(),
                 last_tool: None,
                 last_text: None,
+                messages: Vec::new(),
                 at: chrono::Utc::now(),
             },
         );

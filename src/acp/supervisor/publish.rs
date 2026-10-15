@@ -260,6 +260,7 @@ fn publish_background_agent_detached<S: BroadcastSink>(
             agent_id,
             status: BackgroundAgentStatus::Detached,
             tools: Vec::new(),
+            messages: Vec::new(),
             result: None,
             warning: Some(warning.to_string()),
             ended_at: chrono::Utc::now(),

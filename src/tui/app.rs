@@ -794,9 +794,10 @@ impl App {
                             if !matches!(mouse.kind, MouseEventKind::Moved) {
                                 crate::session::write_tui_activity();
                             }
-                            // Only the wheel and clicks that enter or leave the
-                            // pane are claimed; drags and double-clicks go through
-                            // home like terminal previews.
+                            // Structured preview owns wheel and click input. A
+                            // sub-agent title drag additionally captures its
+                            // Drag/Up pair until release; other drags remain home
+                            // preview selection gestures.
                                 let in_pane = self.home.structured_preview.is_some()
                                     && self.home.preview_pane_area.contains(
                                         ratatui::layout::Position::from((
@@ -804,6 +805,26 @@ impl App {
                                             mouse.row,
                                         )),
                                     );
+                                let subagent_dragging = self
+                                    .home
+                                    .structured_preview
+                                    .as_ref()
+                                    .is_some_and(|view| view.is_subagent_dragging());
+                                if subagent_dragging
+                                    && matches!(
+                                        mouse.kind,
+                                        MouseEventKind::Drag(MouseButton::Left)
+                                            | MouseEventKind::Up(MouseButton::Left)
+                                    )
+                                {
+                                    if let Some(view) = self.home.structured_preview.as_mut() {
+                                        let _ = view.handle_event(Event::Mouse(mouse)).await;
+                                    }
+                                    if !self.needs_redraw {
+                                        self.draw(terminal)?;
+                                    }
+                                    continue;
+                                }
                                 if in_pane
                                     && matches!(
                                         mouse.kind,

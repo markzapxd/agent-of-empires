@@ -139,6 +139,7 @@ impl<S: BroadcastSink> Supervisor<S> {
                                 agent_id,
                                 status: BackgroundAgentStatus::Detached,
                                 tools: Vec::new(),
+                                messages: Vec::new(),
                                 result: None,
                                 warning: None,
                                 ended_at: chrono::Utc::now(),

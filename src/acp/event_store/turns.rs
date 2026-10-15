@@ -555,6 +555,7 @@ mod tests {
             tools: Vec::new(),
             last_tool: None,
             last_text: None,
+            messages: Vec::new(),
             at: chrono::Utc::now(),
         };
         let startup_error = Event::AgentStartupError {
@@ -597,6 +598,7 @@ mod tests {
             agent_id: "bg-1".into(),
             status: BackgroundAgentStatus::Completed,
             tools: Vec::new(),
+            messages: Vec::new(),
             result: None,
             warning: None,
             ended_at: chrono::Utc::now(),
@@ -797,6 +799,7 @@ mod tests {
                     agent_id: "bg-a".into(),
                     status: BackgroundAgentStatus::Completed,
                     tools: Vec::new(),
+                    messages: Vec::new(),
                     result: None,
                     warning: None,
                     ended_at: chrono::Utc::now(),

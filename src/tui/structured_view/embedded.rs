@@ -201,6 +201,11 @@ impl EmbeddedView {
         self.active && super::handle_hover(&mut self.state, col, row)
     }
 
+    /// Whether a floating sub-agent title-bar drag owns pointer capture.
+    pub fn is_subagent_dragging(&self) -> bool {
+        self.state.is_subagent_dragging()
+    }
+
     /// Periodic housekeeping driven by the App's refresh ticker:
     /// expire the toast and surface the next queued plugin
     /// notification. Returns `true` when something visible changed.
