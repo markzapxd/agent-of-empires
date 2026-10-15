@@ -262,9 +262,9 @@ impl HomeView {
                 .title(title)
                 .title_bottom(Line::from(Span::styled(
                     if edit_mode {
-                        " EDIT: drag title · drag ◢ resize · × close · P done "
+                        " EDIT: drag title · drag ◢ resize · × close · L done "
                     } else {
-                        " P edit "
+                        " L edit "
                     },
                     Style::default().fg(if edit_mode {
                         theme.accent

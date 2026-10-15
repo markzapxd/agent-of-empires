@@ -1756,9 +1756,9 @@ impl HomeView {
         self.clear_preview_selection();
 
         // Native sub-agent chats stay passive until explicitly placed in edit mode.
-        // This runs before live-send capture so P remains reachable while keys otherwise
+        // This runs before live-send capture so L remains reachable while keys otherwise
         // relay to the attached pane.
-        if key.code == KeyCode::Char('P')
+        if key.code == KeyCode::Char('L')
             && !key
                 .modifiers
                 .intersects(KeyModifiers::CONTROL | KeyModifiers::ALT)
