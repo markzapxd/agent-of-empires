@@ -16,8 +16,9 @@ use crate::tui::styles::Theme;
 use crate::tui::worker::Worker;
 
 const REFRESH_INTERVAL: Duration = Duration::from_millis(500);
-const WINDOW_WIDTH: u16 = 62;
-const WINDOW_HEIGHT: u16 = 18;
+const AUTO_SHOW_DURATION: Duration = Duration::from_secs(5);
+const WINDOW_WIDTH: u16 = 80;
+const WINDOW_HEIGHT: u16 = 24;
 const MIN_WINDOW_WIDTH: u16 = 28;
 const MIN_WINDOW_HEIGHT: u16 = 8;
 
@@ -39,6 +40,7 @@ pub(super) struct NativeSubagentWindow {
     pub(super) agent_id: String,
     pub(super) position: Option<(u16, u16)>,
     pub(super) size: Option<(u16, u16)>,
+    pub(super) visible_until: Option<Instant>,
     pub(super) scroll: u16,
     pub(super) last_scroll_max: u16,
 }
@@ -146,6 +148,7 @@ impl NativeSubagentWindows {
                     agent_id: record.id.clone(),
                     position: None,
                     size: None,
+                    visible_until: Some(Instant::now() + AUTO_SHOW_DURATION),
                     scroll: u16::MAX,
                     last_scroll_max: 0,
                 });
@@ -164,6 +167,17 @@ impl NativeSubagentWindows {
                 .any(|window| window.agent_id == drag.agent_id)
         }) {
             self.drag = None;
+        }
+        changed
+    }
+
+    fn expire_auto_visibility(&mut self, now: Instant) -> bool {
+        let mut changed = false;
+        for window in &mut self.windows {
+            if window.visible_until.is_some_and(|until| now >= until) {
+                window.visible_until = None;
+                changed = true;
+            }
         }
         changed
     }
@@ -234,6 +248,9 @@ impl HomeView {
     ) {
         self.native_subagent_windows.targets.clear();
         for (index, window) in self.native_subagent_windows.windows.iter_mut().enumerate() {
+            if !self.native_subagent_windows.edit_mode && window.visible_until.is_none() {
+                continue;
+            }
             let Some(record) = self
                 .native_subagent_windows
                 .records
@@ -262,9 +279,9 @@ impl HomeView {
                 .title(title)
                 .title_bottom(Line::from(Span::styled(
                     if edit_mode {
-                        " EDIT: drag title · drag ◢ resize · × close · L done "
+                        " EDIT: drag title · drag ◢ resize · × close · l done "
                     } else {
-                        " L edit "
+                        " l edit "
                     },
                     Style::default().fg(if edit_mode {
                         theme.accent
@@ -326,10 +343,21 @@ impl HomeView {
             return false;
         }
         self.native_subagent_windows.edit_mode = !self.native_subagent_windows.edit_mode;
-        if !self.native_subagent_windows.edit_mode {
+        if self.native_subagent_windows.edit_mode {
+            for window in &mut self.native_subagent_windows.windows {
+                window.visible_until = None;
+            }
+        } else {
             self.native_subagent_windows.drag = None;
         }
         true
+    }
+
+    pub(in crate::tui) fn expire_native_subagent_popups(&mut self, now: Instant) -> bool {
+        if self.native_subagent_windows.edit_mode {
+            return false;
+        }
+        self.native_subagent_windows.expire_auto_visibility(now)
     }
 
     pub(in crate::tui) fn native_subagent_mouse_down(&mut self, col: u16, row: u16) -> bool {

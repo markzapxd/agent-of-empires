@@ -84,10 +84,24 @@ fn selected_terminal_claude_session_opens_draggable_chat() {
     let screen = render_home_to_string(&mut env.view, 120, 40);
     assert!(screen.contains("Analyze TUI · running"), "{screen}");
     assert!(screen.contains("live reply"), "{screen}");
+    let initial_target = env.view.native_subagent_windows.targets[0].clone();
+    assert_eq!(initial_target.area.width, 80);
+    assert_eq!(initial_target.area.height, 24);
+    let expired_at = env.view.native_subagent_windows.windows[0]
+        .visible_until
+        .unwrap()
+        + std::time::Duration::from_millis(1);
+    assert!(env.view.expire_native_subagent_popups(expired_at));
+    let hidden = render_home_to_string(&mut env.view, 120, 40);
+    assert!(!hidden.contains("Analyze TUI · running"), "{hidden}");
+    assert!(env.view.native_subagent_windows.targets.is_empty());
 
     assert!(!env.view.native_subagent_edit_mode());
     assert!(!env.view.native_subagent_mouse_down(0, 0));
     assert!(env.view.native_subagent_toggle_edit_mode());
+    let visible = render_home_to_string(&mut env.view, 120, 40);
+    assert!(visible.contains("Analyze TUI · running"), "{visible}");
+    assert!(visible.contains("l done"), "{visible}");
     let target = env.view.native_subagent_windows.targets[0].clone();
     let down_x = target.title.x + 2;
     assert!(env.view.native_subagent_mouse_down(down_x, target.title.y));

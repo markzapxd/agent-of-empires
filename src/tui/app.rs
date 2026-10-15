@@ -1252,6 +1252,9 @@ impl App {
             full |= self.home.tick_preview_autoscroll();
             refresh_needed |= self.home.tick_unread_dwell(std::time::Instant::now());
             full |= self.home.refresh_native_subagent_windows();
+            full |= self
+                .home
+                .expire_native_subagent_popups(std::time::Instant::now());
 
             // Banner changes shift the layout, so they need a full clear.
             let banner_changed = self.poll_update_check()
