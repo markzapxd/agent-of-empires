@@ -1,6 +1,7 @@
 //! Home view - main session list and navigation
 
 pub(crate) mod bindings;
+mod codex_subagent_transcript;
 mod config_refresh;
 mod creation;
 mod dialogs;
@@ -14,6 +15,7 @@ mod lifecycle;
 mod live_send;
 mod live_send_prep;
 mod native_subagent_transcript;
+mod omp_subagent_transcript;
 mod operations;
 mod overlays;
 mod panes;

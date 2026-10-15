@@ -1,10 +1,12 @@
-//! Floating chats for native Claude sub-agents in terminal-view sessions.
+//! Floating chats for native sub-agents in terminal-view sessions.
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
 
+use super::codex_subagent_transcript::scan_codex_subagents;
 use super::native_subagent_transcript::{native_claude_transcript, scan_subagents};
+use super::omp_subagent_transcript::scan_omp_subagents;
 use ratatui::layout::{Position, Rect};
 use ratatui::style::Style;
 use ratatui::text::{Line, Span};
@@ -67,9 +69,16 @@ pub(super) struct NativeSubagentDrag {
 }
 
 #[derive(Clone)]
+pub(super) enum NativeSubagentSource {
+    Claude(PathBuf),
+    Omp(PathBuf),
+    Codex(Box<crate::session::Instance>),
+}
+
+#[derive(Clone)]
 pub(super) struct NativeSubagentRequest {
     session_id: String,
-    transcript: PathBuf,
+    source: NativeSubagentSource,
 }
 
 pub(super) struct NativeSubagentResult {
@@ -82,6 +91,7 @@ pub(in crate::tui) struct NativeSubagentWindows {
     records: Vec<NativeSubagentRecord>,
     pub(super) windows: Vec<NativeSubagentWindow>,
     known: HashSet<String>,
+    dismissed: HashMap<String, HashSet<String>>,
     pub(super) targets: Vec<NativeSubagentTarget>,
     drag: Option<NativeSubagentDrag>,
     edit_mode: bool,
@@ -97,11 +107,18 @@ impl NativeSubagentWindows {
             records: Vec::new(),
             windows: Vec::new(),
             known: HashSet::new(),
+            dismissed: HashMap::new(),
             targets: Vec::new(),
             drag: None,
             edit_mode: false,
             worker: Worker::spawn("aoe-native-subagent", |request: NativeSubagentRequest| {
-                let records = scan_subagents(&request.transcript);
+                let records = match request.source {
+                    NativeSubagentSource::Claude(path) => scan_subagents(&path),
+                    NativeSubagentSource::Omp(path) => scan_omp_subagents(&path),
+                    NativeSubagentSource::Codex(instance) => {
+                        scan_codex_subagents(&instance).unwrap_or_default()
+                    }
+                };
                 NativeSubagentResult {
                     session_id: request.session_id,
                     records,
@@ -142,8 +159,14 @@ impl NativeSubagentWindows {
             });
         }
         self.records = records;
+        let dismissed = self
+            .session_id
+            .as_ref()
+            .and_then(|session_id| self.dismissed.get(session_id));
         for record in &self.records {
-            if self.known.insert(record.id.clone()) {
+            if self.known.insert(record.id.clone())
+                && !dismissed.is_some_and(|ids| ids.contains(&record.id))
+            {
                 self.windows.push(NativeSubagentWindow {
                     agent_id: record.id.clone(),
                     position: None,
@@ -197,12 +220,12 @@ impl NativeSubagentWindows {
 
 impl HomeView {
     pub(in crate::tui) fn refresh_native_subagent_windows(&mut self) -> bool {
-        let selected = self.selected_session.clone();
-        let transcript = selected
+        let source = self
+            .selected_session
             .as_deref()
             .and_then(|id| self.get_instance(id))
-            .and_then(native_claude_transcript);
-        let active_id = transcript.as_ref().and(selected.as_deref());
+            .and_then(native_subagent_source);
+        let active_id = source.as_ref().map(|(parent_id, _)| parent_id.as_str());
         let mut changed = self.native_subagent_windows.reset_for(active_id);
 
         match self.native_subagent_windows.worker.try_recv() {
@@ -225,14 +248,10 @@ impl HomeView {
             .last_refresh
             .is_none_or(|at| at.elapsed() >= REFRESH_INTERVAL);
         if due && !self.native_subagent_windows.in_flight {
-            if let (Some(session_id), Some(transcript)) = (active_id.map(str::to_owned), transcript)
-            {
+            if let Some((session_id, source)) = source {
                 self.native_subagent_windows
                     .worker
-                    .request(NativeSubagentRequest {
-                        session_id,
-                        transcript,
-                    });
+                    .request(NativeSubagentRequest { session_id, source });
                 self.native_subagent_windows.in_flight = true;
                 self.native_subagent_windows.last_refresh = Some(Instant::now());
             }
@@ -376,6 +395,13 @@ impl HomeView {
             return false;
         };
         if target.close.contains(pos) {
+            if let Some(session_id) = self.native_subagent_windows.session_id.clone() {
+                self.native_subagent_windows
+                    .dismissed
+                    .entry(session_id)
+                    .or_default()
+                    .insert(target.agent_id.clone());
+            }
             self.native_subagent_windows
                 .windows
                 .retain(|window| window.agent_id != target.agent_id);
@@ -486,6 +512,33 @@ impl HomeView {
         }
         true
     }
+}
+
+fn native_subagent_source(
+    instance: &crate::session::Instance,
+) -> Option<(String, NativeSubagentSource)> {
+    let binding = instance.agent_session_binding.as_ref()?;
+    let execution = binding.execution.as_ref()?;
+    if execution.filesystem != "host" {
+        return None;
+    }
+    let source = match execution.agent.as_str() {
+        "claude" | "claude-code" | "claudex" => {
+            native_claude_transcript(instance).map(NativeSubagentSource::Claude)
+        }
+        "omp" => binding
+            .transcript_path
+            .as_ref()
+            .filter(|path| path.is_file())
+            .cloned()
+            .map(NativeSubagentSource::Omp),
+        "codex" => Some(NativeSubagentSource::Codex(Box::new(instance.clone()))),
+        _ => None,
+    }?;
+    Some((
+        format!("{}:{}", execution.agent, binding.session_id),
+        source,
+    ))
 }
 
 fn native_chat_lines(record: &NativeSubagentRecord, theme: &Theme) -> Vec<Line<'static>> {

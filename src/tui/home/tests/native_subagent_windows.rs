@@ -147,6 +147,7 @@ fn closed_native_chat_does_not_reopen_on_refresh() {
     let close = env.view.native_subagent_windows.targets[0].close;
     assert!(env.view.native_subagent_mouse_down(close.x, close.y));
     assert!(env.view.native_subagent_windows.windows.is_empty());
+    let native_parent = env.view.native_subagent_windows.session_id.clone().unwrap();
 
     env.view.native_subagent_windows.last_refresh = None;
     std::thread::sleep(std::time::Duration::from_millis(20));
@@ -154,4 +155,19 @@ fn closed_native_chat_does_not_reopen_on_refresh() {
     std::thread::sleep(std::time::Duration::from_millis(20));
     env.view.refresh_native_subagent_windows();
     assert!(env.view.native_subagent_windows.windows.is_empty());
+
+    let session_id = env.view.selected_session.clone().unwrap();
+    env.view.selected_session = None;
+    env.view.refresh_native_subagent_windows();
+    env.view.selected_session = Some(session_id);
+    env.view.native_subagent_windows.last_refresh = None;
+    std::thread::sleep(std::time::Duration::from_millis(20));
+    env.view.refresh_native_subagent_windows();
+    std::thread::sleep(std::time::Duration::from_millis(20));
+    env.view.refresh_native_subagent_windows();
+    assert!(env.view.native_subagent_windows.windows.is_empty());
+    assert_eq!(
+        env.view.native_subagent_windows.session_id.as_deref(),
+        Some(native_parent.as_str())
+    );
 }
